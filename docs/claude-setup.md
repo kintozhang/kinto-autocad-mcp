@@ -43,3 +43,9 @@ MCP 接入不等于 Claude 自动获得 Codex 的 Computer Use 插件。
 - https://code.claude.com/docs/en/mcp
 - https://support.claude.com/en/articles/11145838-use-claude-code-with-your-pro-or-max-plan
 - https://py.sdk.modelcontextprotocol.io/get-started/real-host/
+
+## Windows 应用包版本路径（本机已核实）
+
+2026-09-26，实际进程来自WindowsApps/Claude，客户端配置位于用户LocalAppData/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/claude_desktop_config.json。普通APPDATA/Claude中的配置不能作为此安装已接入的证据。已备份并合并实际配置，保留全部既有偏好；实际配置启动新服务进程后初始化、32个默认工具及能力查询通过。
+
+scripts.check_client_mcp现优先使用唯一存在的应用包配置，多个候选时拒绝猜测。脚本握手仍不等于桌面客户端已重载。用户需完全退出Claude（包括托盘进程）并重新打开，在开发者设置确认kinto_autocad；本轮未强制终止正在运行的客户端。配置路径以客户端“编辑配置”打开的位置为最终依据。

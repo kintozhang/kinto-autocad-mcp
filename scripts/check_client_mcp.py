@@ -7,9 +7,12 @@ from mcp.client.stdio import stdio_client
 
 
 async def main():
+    packaged=list((Path.home()/'AppData/Local/Packages').glob('Claude_*/LocalCache/Roaming/Claude/claude_desktop_config.json'))
+    if len(packaged)>1:raise RuntimeError('Multiple packaged Claude configurations; choose the active installation explicitly')
+    claude_config=packaged[0] if packaged else Path.home()/'AppData/Roaming/Claude/claude_desktop_config.json'
     configs={
         'codex_user':tomllib.loads((Path.home()/'.codex/config.toml').read_text(encoding='utf8'))['mcp_servers']['kinto_autocad'],
-        'claude_desktop':json.loads((Path.home()/'AppData/Roaming/Claude/claude_desktop_config.json').read_text(encoding='utf8'))['mcpServers']['kinto_autocad']}
+        'claude_desktop':json.loads(claude_config.read_text(encoding='utf-8-sig'))['mcpServers']['kinto_autocad']}
     results={}
     for label,cfg in configs.items():
         async with stdio_client(StdioServerParameters(command=cfg['command'],args=cfg.get('args',[]),cwd=cfg.get('cwd'),env={**os.environ,**cfg.get('env',{})})) as (r,w):
