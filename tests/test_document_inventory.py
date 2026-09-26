@@ -42,3 +42,15 @@ def test_same_basename_in_different_projects_is_distinct():
     app=SimpleNamespace(HWND=7, Documents=[doc('page.dwg','C:/one/page.dwg'),doc('page.dwg','C:/two/page.dwg')])
     rows=document_inventory(app,interval=0)
     assert len(rows)==2 and rows[0]['identity']!=rows[1]['identity']
+
+
+def test_default_list_drawings_uses_stable_inventory():
+    from unittest.mock import patch
+    from src.tools.project import list_drawings
+    app=SimpleNamespace(HWND=7, Documents=[doc('same.dwg','C:/a/same.dwg'),doc('same.dwg','C:/b/same.dwg')])
+    app.ActiveDocument=app.Documents[1]
+    conn=MagicMock();conn.get_application.return_value=app
+    with patch('src.tools.project._get_conn',return_value=conn):
+        result=list_drawings()
+    assert result['success'] and [d['active'] for d in result['drawings']]==[False,True]
+    assert all(d['sheet_number']=='' for d in result['drawings'])

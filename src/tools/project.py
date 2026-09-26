@@ -86,8 +86,8 @@ def get_project_info() -> dict[str, Any]:
 def list_drawings() -> dict[str, Any]:
     """List all drawings currently open in AutoCAD.
 
-    Returns sheet numbers (parsed from drawing names if they follow the
-    AutoCAD Electrical naming convention) along with save state.
+    Returns a stable document inventory with save state and instance identity.
+    Logical sheet numbers are not inferred from filenames.
 
     Returns
     -------
@@ -98,26 +98,12 @@ def list_drawings() -> dict[str, Any]:
         conn = _get_conn()
         app = conn.get_application()
 
-        drawings: list[dict[str, Any]] = []
-        for i in range(app.Documents.Count):
-            try:
-                d = app.Documents.Item(i)
-                # AutoCAD Electrical typically names drawings like "Sheet_01.dwg"
-                name = d.Name
-                sheet_num = ""
-                for part in name.replace("_", " ").split():
-                    if part.isdigit():
-                        sheet_num = part
-                        break
-                drawings.append({
-                    "name": name,
-                    "full_path": d.FullName,
-                    "sheet_number": sheet_num,
-                    "saved": d.Saved,
-                    "active": (d.Name == app.ActiveDocument.Name),
-                })
-            except Exception:
-                pass
+        from src.autocad.com_runtime import document_inventory,read_call
+        inventory=document_inventory(app)
+        active=read_call(lambda:(app.ActiveDocument.Name,app.ActiveDocument.FullName))
+        drawings=[{'name':r['name'],'full_path':r['path'],'sheet_number':'',
+                   'saved':r['saved'],'active':(r['name'],r['path'])==active,
+                   'identity':r['identity']} for r in inventory]
 
         return {
             "success": True,

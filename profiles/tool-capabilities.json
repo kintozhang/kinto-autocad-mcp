@@ -480,6 +480,30 @@
       "scope": "Exact synthetic lamp and R2 channel fixture only",
       "issue": "Exact synthetic lamp and Y00-to-Y01 case only; default hidden; no production support",
       "evidence": "docs/trebi-test-change-validation.md"
+    },
+    "plan_cad_project": {
+      "default_enabled": true,
+      "status": "restricted_workflow_verified",
+      "scope": "New empty mechanical/TREBI draft projects only",
+      "evidence": "docs/engineering-project-workflow.md"
+    },
+    "create_cad_project": {
+      "default_enabled": true,
+      "status": "restricted_workflow_verified",
+      "scope": "New empty mechanical/TREBI draft projects only",
+      "evidence": "docs/engineering-project-workflow.md"
+    },
+    "audit_cad_project": {
+      "default_enabled": true,
+      "status": "restricted_workflow_verified",
+      "scope": "Offline version-bound evidence / restore to new directory only",
+      "evidence": "docs/engineering-project-workflow.md"
+    },
+    "restore_cad_project": {
+      "default_enabled": true,
+      "status": "restricted_workflow_verified",
+      "scope": "Offline version-bound evidence / restore to new directory only",
+      "evidence": "docs/engineering-project-workflow.md"
     }
   }
 }

@@ -1,5 +1,7 @@
 # P0/P1 工程化进度
 
+最新状态见[统一项目工作流](engineering-project-workflow.md)。以下为逐轮历史记录，较早的“未完成”已由后续专项验证补齐，不应单独作为当前结论。
+
 ## 本轮完成：显式文件备份与恢复
 
 离线入口 `python -m scripts.engineering_archive`，无需连接AutoCAD或模型API。不自动保存正在编辑的图纸，不清除MCP锁，不覆盖工程。尚未自动挂接绘图工具；写入前须显式调用。

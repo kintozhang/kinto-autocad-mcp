@@ -117,4 +117,3 @@ def backup_saved_project(project_path, project, destination):
     data = backup(wdp.parent, destination, [p.name for p in paths])
     return {'path': str(destination), 'scope': 'saved_wdp_wdt_project_drawings_only',
             'files': data['files'], 'external_dependencies_included': False}
-

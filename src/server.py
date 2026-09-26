@@ -910,6 +910,37 @@ def plan_delta_r2_io(spec: dict[str, Any]) -> dict[str, Any]:
         return {"success":False,"status":"preflight_rejected","submitted":False,"cad_contacted":False,"error":str(exc)}
 
 
+@registered_tool()
+def plan_cad_project(spec: dict[str, Any]) -> dict[str, Any]:
+    """Plan new external mechanical/TREBI draft project; no CAD writes. Schema v1: name, output_root, discipline, pages, purpose; electrical also requires base_project."""
+    from src.tools.engineering_project import plan
+    try:return plan(spec)
+    except Exception as exc:return {'success':False,'submitted':False,'status':'preflight_rejected','error':str(exc)}
+
+
+@registered_tool()
+def create_cad_project(spec: dict[str, Any]) -> dict[str, Any]:
+    """Create new empty draft project using verified mechanical/TREBI DWT. Never overwrite. Electrical requires explicit active base WDP for settings; partial outcomes must not be replayed."""
+    from src.tools.engineering_project import execute
+    return execute(spec)
+
+
+@registered_tool()
+def audit_cad_project(project_path: str, evidence_files: list[str]) -> dict[str, Any]:
+    """Read-only version-bound evidence summary for hardware, mapping, tags, wiring, references, reports, reopen and PDF. Missing/unknown/stale evidence blocks release; never claims hardware verification or production approval."""
+    from src.tools.project_acceptance import audit
+    try:return audit(project_path,evidence_files)
+    except Exception as exc:return {'success':False,'submitted':False,'error':str(exc)}
+
+
+@registered_tool()
+def restore_cad_project(archive_path: str, destination: str, project_name: str) -> dict[str, Any]:
+    """Restore verified saved sibling-file snapshot into a NEW directory and NEW WDP/WDT name. No CAD calls or overwrite; requires separate CAD reopen/report acceptance. Never replay a partial restore."""
+    from src.tools.project_recovery import recover
+    try:return recover(archive_path,destination,project_name)
+    except Exception as exc:return {'success':False,'status':'restore_failed_inspect_destination','error':str(exc),'automatic_retry':False}
+
+
 def main() -> None:
     """Start the MCP server (stdio transport)."""
     logger.info(
@@ -917,7 +948,7 @@ def main() -> None:
         _mcp_cfg.get("server_name", "autocad-electrical-mcp"),
         _mcp_cfg.get("server_version", "1.0.0"),
     )
-    logger.info("Active AI provider: %s", _cfg.get_active_provider())
+    logger.info("Local MCP transport; model authentication belongs to the subscription client")
 
     # Attempt AutoCAD connection at startup (non-fatal)
     # CAD connects only inside bounded workers, never on MCP startup.

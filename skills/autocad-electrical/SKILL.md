@@ -31,3 +31,12 @@ PLC模块、完整I/O映射、连接器/电缆芯线、柜内布局与安全双�
 
 
 TREBI PDF导航：synthetic_trebi_a3默认按原生信号XREF及标题PREV/NEXT边界生成内部跳转，按逻辑页清单解析目标，附PAGE书签；不可将逻辑页号当PDF页序。当前仅单一page.zone信号引用，不自动链接PLC POSITION或多项触点引用。无法唯一识别打印图框或目标页缺失时拒绝生成。证据见[导航验收](../../docs/pdf-navigation-validation.md)。
+
+
+## 工程化入口
+
+新工程先调用plan_cad_project，再按同一规格调用create_cad_project；必须明确机械/电气模板、输出根目录、逻辑页及电气base_project，不使用临时命令替代已提供入口。创建只产生草案，生产用途未开放。使用[统一工作流](../../docs/engineering-project-workflow.md)了解参数与验收边界。
+
+默认批量与实验修改已有写入前备份。中断后先检查诊断和回执；需要恢复时用restore_cad_project生成独立目录及新项目名，再做保存重开、线网和报表核验。不要覆盖失败现场或盲目重放。其他底层写工具未自动全覆盖备份。
+
+调用audit_cad_project汇总当前版本的证据。未知硬件、地址、连接或缺失证据必须作为阻断；全部证据齐备仍需工程审核，不得把evidence_complete称为可施工批准。正式PDF发布尚不支持。

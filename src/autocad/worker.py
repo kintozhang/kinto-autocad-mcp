@@ -68,7 +68,7 @@ def main():
                     sys.__stdout__.write(json.dumps({"phase": "not_entered", "error": str(exc)}))
                     return
                 # PDF intentionally switches to copies; it has its own per-page guards.
-                if name not in {"export_electrical_project_pdf", "execute_trebi_batch"}:
+                if name not in {"export_electrical_project_pdf", "execute_trebi_batch", "create_cad_project"}:
                     conn._bound_document = original
                     conn._bound_hwnd = hwnd
             progress("tool_entering")

@@ -31,7 +31,7 @@ with patch.object(server, '_attempt_autocad_connect'):
                 names = {tool.name for tool in result.tools}
                 from src.tool_policy import catalogue
                 assert names == {name for name,item in catalogue().items() if item["default_enabled"]}
-                metadata = {"get_autocad_info", "get_symbol_list", "get_tool_capabilities", "get_execution_diagnostics", "plan_trebi_batch", "plan_delta_r2_io"}
+                metadata = {"get_autocad_info", "get_symbol_list", "get_tool_capabilities", "get_execution_diagnostics", "plan_trebi_batch", "plan_delta_r2_io", "plan_cad_project", "audit_cad_project", "restore_cad_project"}
                 for tool in result.tools:
                     if tool.name not in metadata:
                         properties = tool.inputSchema["properties"]

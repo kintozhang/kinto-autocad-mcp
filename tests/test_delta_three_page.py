@@ -49,4 +49,3 @@ def test_invalid_mapping_never_contacts_cad(spec,case):
         result=execute('C:/test.wdp',spec,'C:/test.dwg')
     assert not result['success'] and not result['submitted']
     conn.assert_not_called()
-
