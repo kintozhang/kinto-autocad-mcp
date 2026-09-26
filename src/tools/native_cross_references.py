@@ -45,10 +45,13 @@ def pairs(records, check_references):
         matches = parents.get((a.get("INST", ""), a.get("LOC", ""), a["TAG2"]), [])
         if len(matches) != 1:
             raise BridgeError("Child requires exactly one matching INST/LOC/TAG parent: " + a["TAG2"])
-        if a.get("CONTACT") not in {"NO", "NC"}:
-            raise BridgeError("Only NO/NC contact references are currently supported")
         parent = matches[0]
-        field = "XREFNO" if a["CONTACT"] == "NO" else "XREFNC"
+        if a.get("FAMILY") == "CBL" and parent["attributes"].get("FAMILY") == "CBL":
+            field = "XREF"
+        elif a.get("CONTACT") in {"NO", "NC"}:
+            field = "XREFNO" if a["CONTACT"] == "NO" else "XREFNC"
+        else:
+            raise BridgeError("Only NO/NC contacts or matched CBL cable references supported")
         if check_references and (not a.get("XREF") or not parent["attributes"].get(field)):
             raise BridgeError("Parent or child reference was empty after native update")
         result.append({"parent":parent,"child":child,"parent_reference_field":field})

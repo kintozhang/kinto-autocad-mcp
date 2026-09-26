@@ -56,3 +56,22 @@ def test_long_expression_uses_short_single_submission(tmp_path, monkeypatch):
     assert len(conn.commands)==1
     assert len(conn.commands[0].encode('utf8'))<=1900
     assert 'SECURELOAD' not in conn.commands[0]
+
+
+def test_receipt_metadata_transient_does_not_resubmit_command(tmp_path, monkeypatch):
+    monkeypatch.setattr(lisp_bridge,'ROOT',tmp_path)
+    class Conn:
+        sent=0
+        reads=0
+        def get_active_document(self):
+            self.reads+=1
+            if self.sent and self.reads<4:raise AttributeError('<unknown>.FullName')
+            return SimpleNamespace(FullName='C:/test.dwg',GetVariable=lambda _:0)
+        def send_command(self,command):
+            self.sent+=1
+            import re
+            name=re.search(r'/([a-f0-9]{32})[.]lisp',command).group(1)
+            (tmp_path/'work/bridge'/(name+'.lisp')).write_text('("ok" 1)')
+    conn=Conn()
+    assert lisp_bridge.evaluate(conn,'1')==1
+    assert conn.sent==1

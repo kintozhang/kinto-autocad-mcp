@@ -73,11 +73,11 @@ def lookup_document_open(app, *, attempts=8):
             time.sleep(.15)
 
 
-def document_full_name(app, *, attempts=8, interval=.15):
+def read_document_name(get_document, *, attempts=8, interval=.15):
     """Retry only the known active-document metadata probe; never a write."""
     for attempt in range(attempts):
         try:
-            return read_call(lambda: app.ActiveDocument.FullName,
+            return read_call(lambda: get_document().FullName,
                              attempts=1, label="ActiveDocument.FullName")
         except (AttributeError, ComBusyError) as exc:
             if attempt + 1 == attempts:
@@ -87,6 +87,10 @@ def document_full_name(app, *, attempts=8, interval=.15):
                     'This probe did not switch documents or retry writes.'
                 ) from exc
             time.sleep(interval)
+
+
+def document_full_name(app, *, attempts=8, interval=.15):
+    return read_document_name(lambda: app.ActiveDocument, attempts=attempts, interval=interval)
 
 
 def create_document_from_template(app, template, destination, *, timeout=12., interval=.15):

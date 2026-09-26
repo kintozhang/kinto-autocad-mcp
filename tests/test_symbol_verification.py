@@ -73,3 +73,14 @@ def test_explicit_parent_or_terminal_tag_suppresses_native_autotag(attributes,op
         native.insert_symbol("HCR1",10,20,attributes=attributes)
     assert execute.call_count==1
     assert execute.call_args.args[1].endswith(" 1.0 "+str(options)+")")
+
+
+def test_connector_plug_jack_suffixes_are_pins_but_descriptions_are_not():
+    obj=MagicMock()
+    values={'TERM01P':'4','TERM01J':'4','TERM02P':'6'}
+    attrs=[]
+    for tag in ['X4TERM01P','X1TERM01J','X4TERM02P','X4TERMDESC01P','X4WIRE01P','X4_TINY_DOT_DONT_REMOVE_01P','X4TERM01BAD',*values]:
+        a=MagicMock();a.TagString=tag;a.TextString=values.get(tag,'');a.InsertionPoint=(1,2,0);attrs.append(a)
+    obj.GetAttributes.return_value=attrs
+    points=native._points(obj)
+    assert [(p['connection'],p['terminal']) for p in points]==[('X4TERM01P','4'),('X1TERM01J','4'),('X4TERM02P','6')]

@@ -90,7 +90,9 @@ def export_pdf(project_path, output_path, template_mode):
             return result
     except Exception as exc:
         result = {'success': False, 'error': str(exc), 'retry_safe': False,
-                  'operation_directory': str(operation) if operation else None}
+                  'operation_directory': str(operation) if operation else None,
+                  'status': 'partial_or_unknown' if operation else 'preflight_rejected',
+                  'submitted': True if operation else False}
         if operation and operation.is_dir():
             (operation / 'error.json').write_text(json.dumps(result, indent=2), encoding='utf8')
         return result

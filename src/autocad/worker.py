@@ -74,11 +74,16 @@ def main():
             progress("tool_entering")
             entered = True
             result = function(**args)
+            progress("tool_returned", result=result)
             if name not in metadata:
-                if read_call(lambda: int(app.HWND)) != hwnd:
-                    raise ValueError("AutoCAD instance changed")
-                if document_full_name(app) != original:
-                    raise ValueError("Active document changed during operation")
+                try:
+                    if read_call(lambda: int(app.HWND)) != hwnd:
+                        raise ValueError("AutoCAD instance changed")
+                    if document_full_name(app) != original:
+                        raise ValueError("Active document changed during operation")
+                except Exception as exc:
+                    result = {"success": False, "status": "context_unverified", "submitted": "unknown",
+                              "tool_result": result, "error": str(exc), "automatic_retry": False}
         print(json.dumps({"phase": "completed", "result": result}, ensure_ascii=True))
     except Exception as exc:
         if entered:

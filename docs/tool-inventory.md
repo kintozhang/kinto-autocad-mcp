@@ -1,6 +1,6 @@
 # 全工具验收清单
 
-65个工具定义：28个默认提供，37个默认隐藏。默认开放不等于全参数范围验收。
+73个工具定义：33个默认提供，40个默认隐藏。默认开放不等于全参数范围验收。
 
 由 profiles/tool-capabilities.json 生成；更新命令：python -m scripts.audit_api_coverage --write。API与技能对应关系见 [覆盖审计](api-skill-coverage.md)。
 
@@ -71,3 +71,11 @@
 | plan_trebi_batch | 是 | offline_and_stdio_verified / Pure TREBI batch preflight: pages/tags/reference expectations; no CAD scan | Prepared blank-page recipe only; no catalog selection | docs/trebi-batch-validation.md |
 | execute_trebi_batch | 是 | live_sample_verified / Two-page IEC2 relay/contact/terminals/signals; native title/grid, wires, references, reports and independent reopen accepted | Requires prepared blank pages; only verified IEC2 subset; general 8-page limit not full-range acceptance | docs/trebi-batch-validation.md |
 | plan_delta_r2_io | 是 | offline_and_stdio_verified / Read-only R2-EC0902 family channel/common/PDO-group draft; no CAD contact | D0 suffix, exact ESI, NC50 addresses and native PLC symbols pending | docs/delta-io-planning.md |
+| execute_trebi_test_change | 否 | live_synthetic_verified / Exact synthetic lamp and R2 channel fixture only | Exact synthetic lamp and Y00-to-Y01 case only; default hidden; no production support | docs/trebi-test-change-validation.md |
+| plan_cad_project | 是 | restricted_workflow_verified / New empty mechanical/TREBI draft projects only |  | docs/engineering-project-workflow.md |
+| create_cad_project | 是 | restricted_workflow_verified / New empty mechanical/TREBI draft projects only |  | docs/engineering-project-workflow.md |
+| audit_cad_project | 是 | restricted_workflow_verified / Offline version-bound evidence / restore to new directory only |  | docs/engineering-project-workflow.md |
+| restore_cad_project | 是 | restricted_workflow_verified / Offline version-bound evidence / restore to new directory only |  | docs/engineering-project-workflow.md |
+| recover_cad_interruption | 是 | restricted_recovery / Inspect stable saved target and release reviewed interruption for NEW operations; never replay/undo | Only block/line/text/circle model-space snapshots; unknown entities or running workers refuse recovery | docs/interruption-recovery.md |
+| insert_test_parametric_connector | 否 | experimental / Blank saved TREBI test page only; native documented API | Live acceptance pending; no Delta hardware binding | docs/extended-electrical-acceptance.md |
+| insert_test_plc_module | 否 | experimental / Blank saved TREBI test page only; native documented API | Live acceptance pending; no Delta hardware binding | docs/extended-electrical-acceptance.md |

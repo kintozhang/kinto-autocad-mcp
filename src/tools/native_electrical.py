@@ -6,7 +6,7 @@ from src.autocad.lisp_bridge import evaluate, literal, BridgeError
 from src.autocad.utils import get_block_attributes
 
 HANDLE = re.compile(r"^[0-9A-Fa-f]+$")
-CONNECTION = re.compile(r"^X[01248]TERM([0-9]{2})$")
+CONNECTION = re.compile(r"^X[01248]TERM([0-9]{2}[PJ]?)$")
 
 
 def connection():

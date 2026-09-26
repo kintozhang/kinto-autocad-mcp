@@ -46,3 +46,13 @@ def test_nc_does_not_accept_only_no_parent_reference():
     r[0]["attributes"]["XREFNC"]="3.3-D"
     result=x.pairs(r,True)
     assert [p["parent_reference_field"] for p in result]==["XREFNO","XREFNC"]
+
+
+def test_cable_parent_child_requires_matching_family_and_references():
+    from src.tools.native_cross_references import pairs
+    records=[{'attributes':{'TAG1':'-W1','FAMILY':'CBL','XREF':'102.2'}},
+             {'attributes':{'TAG2':'-W1','FAMILY':'CBL','XREF':'102.2'}}]
+    assert pairs(records,True)[0]['parent_reference_field']=='XREF'
+    records[0]['attributes']['FAMILY']='CR'
+    import pytest
+    with pytest.raises(Exception):pairs(records,True)

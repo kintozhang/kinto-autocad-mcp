@@ -10,7 +10,7 @@ from src.autocad.client_gate import exclusive, GateRejected, gate_path
 
 ROOT = Path(__file__).resolve().parents[2]
 DEADLINE = 45
-TOOL_DEADLINES = {"create_cad_project": 600, "execute_trebi_test_change": 180, "execute_trebi_batch": 600, "export_electrical_project_report": 90, "export_electrical_project_pdf": 180}
+TOOL_DEADLINES = {"update_electrical_cross_references": 120, "insert_test_parametric_connector": 100, "insert_test_plc_module": 100, "create_cad_project": 600, "execute_trebi_test_change": 180, "execute_trebi_batch": 600, "export_electrical_project_report": 90, "export_electrical_project_pdf": 180}
 
 METADATA = {"get_tool_capabilities", "get_symbol_list", "get_autocad_info"}
 
@@ -62,7 +62,8 @@ def isolated(function):
                     "hwnd": kwargs.pop("expected_instance_hwnd", 0)}
         bound = inspect.signature(function).bind(*args, **kwargs)
         operation_id = uuid.uuid4().hex
-        record = {"operation_id": operation_id, "tool": function.__name__, "state": "starting"}
+        record = {"operation_id": operation_id, "tool": function.__name__, "state": "starting",
+                  "arguments": dict(bound.arguments), "expected": expected}
         folder = gate_path().parent / "operations"
         folder.mkdir(parents=True, exist_ok=True)
         path = folder / (operation_id + ".json")
@@ -98,7 +99,7 @@ def isolated(function):
                     record["state"] = "read_failed"
                     save()
                     return result
-                if function.__name__ in {"execute_trebi_batch", "execute_trebi_test_change", "create_cad_project"} and result.get("status") == "preflight_rejected" and result.get("submitted") is False:
+                if function.__name__ in {"execute_trebi_batch", "execute_trebi_test_change", "create_cad_project", "export_electrical_project_pdf", "insert_test_parametric_connector", "insert_test_plc_module"} and result.get("status") == "preflight_rejected" and result.get("submitted") is False:
                     record["state"] = "not_submitted"
                     save()
                     return result

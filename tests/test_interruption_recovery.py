@@ -1,0 +1,82 @@
+import json
+from pathlib import Path
+from unittest.mock import patch
+import pytest
+from src.autocad import recovery
+from src.autocad.isolated import isolated,diagnose
+
+@pytest.fixture
+def scene(tmp_path):
+    lock=tmp_path/'session.lock';op='a'*32
+    lock.write_bytes(b'\0'+json.dumps({'pid':999,'operation':'draw_line:'+op}).encode())
+    ops=tmp_path/'operations';ops.mkdir()
+    (ops/(op+'.json')).write_text(json.dumps({'state':'outcome_unknown','tool':'draw_line'}))
+    (ops/(op+'.progress')).write_text(json.dumps({'pid':998,'state':'tool_entering'}))
+    drawing=tmp_path/'draft.dwg';drawing.write_bytes(b'draft')
+    with patch.object(recovery,'gate_path',return_value=lock),patch.object(recovery,'probe_worker',return_value={'idle':True,'saved':True,'objects':[]}) as probe,patch('win32process.EnumProcesses',return_value=[]) as processes:
+        yield lock,op,str(drawing),probe,processes
+
+def test_inspection_preserves_marker_release_preserves_unknown(scene):
+    lock,op,drawing,probe,_=scene;before=lock.read_bytes()
+    d=recovery.inspect_or_release('inspect',drawing,123)
+    assert d['status']=='review_required' and lock.read_bytes()==before
+    r=recovery.inspect_or_release('release',drawing,123,op,d['snapshot_id'])
+    assert r['failed_operation_status']=='partial_or_unknown' and not r['cad_modified']
+    assert lock.read_bytes()==b'\0' and Path(r['receipt']).exists()
+
+def test_live_worker_cannot_be_released(scene):
+    lock,op,drawing,probe,processes=scene;processes.return_value=[998]
+    with pytest.raises(ValueError,match='alive'):recovery.inspect_or_release('inspect',drawing,123)
+    probe.assert_not_called();assert len(lock.read_bytes())>1
+
+def test_changed_objects_refuse_release(scene):
+    lock,op,drawing,probe,_=scene
+    d=recovery.inspect_or_release('inspect',drawing,123)
+    probe.return_value={'idle':True,'saved':True,'objects':[{'handle':'new'}]}
+    with pytest.raises(ValueError,match='changed'):recovery.inspect_or_release('release',drawing,123,op,d['snapshot_id'])
+    assert len(lock.read_bytes())>1
+
+def test_changed_record_refuses_release(scene):
+    lock,op,drawing,probe,_=scene;d=recovery.inspect_or_release('inspect',drawing,123)
+    (lock.parent/'operations'/(op+'.json')).write_text(json.dumps({'state':'outcome_unknown','changed':True}))
+    with pytest.raises(ValueError,match='changed'):recovery.inspect_or_release('release',drawing,123,op,d['snapshot_id'])
+
+def test_wrong_operation_and_path_token_refused(scene):
+    lock,op,drawing,probe,_=scene
+    with pytest.raises(ValueError,match='Exact'):recovery.inspect_or_release('release',drawing,123,'b'*32,'../bad')
+    assert len(lock.read_bytes())>1
+
+def test_read_failure_keeps_marker(scene):
+    lock,op,drawing,probe,_=scene;probe.side_effect=TimeoutError('busy')
+    with pytest.raises(TimeoutError):recovery.inspect_or_release('inspect',drawing,123)
+    assert len(lock.read_bytes())>1
+
+def test_invalid_action_never_reads_cad(scene):
+    lock,op,drawing,probe,_=scene
+    with pytest.raises(ValueError):recovery.inspect_or_release('retry',drawing,123)
+    probe.assert_not_called()
+
+def test_active_gate_refuses_probe(scene):
+    import msvcrt
+    lock,op,drawing,probe,_=scene
+    with lock.open('r+b',buffering=0) as f:
+        msvcrt.locking(f.fileno(),msvcrt.LK_NBLCK,1)
+        try:assert recovery.inspect_or_release('inspect',drawing,123)['status']=='cad_in_use'
+        finally:f.seek(0);msvcrt.locking(f.fileno(),msvcrt.LK_UNLCK,1)
+    probe.assert_not_called()
+
+@pytest.mark.parametrize("name", ["export_electrical_project_pdf", "insert_test_parametric_connector", "insert_test_plc_module"])
+def test_preflight_does_not_quarantine(tmp_path, name):
+    def export_electrical_project_pdf():pass
+    export_electrical_project_pdf.__name__=name
+    result={'success':False,'status':'preflight_rejected','submitted':False,'operation_directory':None}
+    with patch('src.autocad.isolated.gate_path',return_value=tmp_path/'session.lock'),patch('src.autocad.client_gate.gate_path',return_value=tmp_path/'session.lock'),patch('src.autocad.isolated.run_worker',return_value=result):
+        assert isolated(export_electrical_project_pdf)()==result
+        assert diagnose()['marker'] is None
+
+def test_pdf_postwrite_failure_still_quarantines(tmp_path):
+    def export_electrical_project_pdf():pass
+    result={'success':False,'status':'partial_or_unknown','submitted':True}
+    with patch('src.autocad.isolated.gate_path',return_value=tmp_path/'session.lock'),patch('src.autocad.client_gate.gate_path',return_value=tmp_path/'session.lock'),patch('src.autocad.isolated.run_worker',return_value=result):
+        assert isolated(export_electrical_project_pdf)()['status']=='outcome_unknown'
+        assert diagnose()['marker']

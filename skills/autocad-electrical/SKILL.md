@@ -40,3 +40,10 @@ TREBI PDF导航：synthetic_trebi_a3默认按原生信号XREF及标题PREV/NEXT�
 默认批量与实验修改已有写入前备份。中断后先检查诊断和回执；需要恢复时用restore_cad_project生成独立目录及新项目名，再做保存重开、线网和报表核验。不要覆盖失败现场或盲目重放。其他底层写工具未自动全覆盖备份。
 
 调用audit_cad_project汇总当前版本的证据。未知硬件、地址、连接或缺失证据必须作为阻断；全部证据齐备仍需工程审核，不得把evidence_complete称为可施工批准。正式PDF发布尚不支持。
+
+
+## 扩展符号和中断恢复
+
+按[扩展验收](../../docs/extended-electrical-acceptance.md)区分样板与正式能力。实验连接器仅为合并P/J；实验PLC固定AB 1771-IAD，不是Delta。电缆号、芯号、针脚、PLC地址分栏回读。双网络端点隔离不代表实际安全双通道认证或功能通过。
+
+标准MCP中断先诊断，再调用recover_cad_interruption的inspect，核对操作记录、已执行对象、DWG和实例；只有快照与预期一致才用同一operation_id/snapshot_id执行release。工具不会重放、保存或撤销；未保存/复杂实体现场被拒绝时保持隔离。禁止为通过恢复擅自保存用户未知改动。两步细则见[恢复说明](../../docs/interruption-recovery.md)。

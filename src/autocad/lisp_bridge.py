@@ -7,6 +7,7 @@ import re
 import threading
 import time
 import uuid
+from src.autocad.com_runtime import read_document_name
 
 _LOCK = threading.RLock()
 ROOT = Path(__file__).resolve().parents[2]
@@ -124,7 +125,7 @@ def evaluate(conn, expression, timeout=15):
                     continue
                 if status != "ok":
                     raise BridgeError(f"CAD API error [{operation}]: {value}")
-                if conn.get_active_document().FullName != name:
+                if read_document_name(conn.get_active_document) != name:
                     raise BridgeError(f"Document changed after operation [{operation}]; inspect before retry")
                 return value
             time.sleep(.05)

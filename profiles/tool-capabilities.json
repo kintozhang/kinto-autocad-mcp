@@ -504,6 +504,27 @@
       "status": "restricted_workflow_verified",
       "scope": "Offline version-bound evidence / restore to new directory only",
       "evidence": "docs/engineering-project-workflow.md"
+    },
+    "recover_cad_interruption": {
+      "default_enabled": true,
+      "status": "restricted_recovery",
+      "scope": "Inspect stable saved target and release reviewed interruption for NEW operations; never replay/undo",
+      "issue": "Only block/line/text/circle model-space snapshots; unknown entities or running workers refuse recovery",
+      "evidence": "docs/interruption-recovery.md"
+    },
+    "insert_test_parametric_connector": {
+      "default_enabled": false,
+      "status": "experimental",
+      "scope": "Blank saved TREBI test page only; native documented API",
+      "issue": "Combined P/J three-pin fixture verified; split connectors, shielding and real catalogue remain unverified",
+      "evidence": "docs/extended-electrical-acceptance.md"
+    },
+    "insert_test_plc_module": {
+      "default_enabled": false,
+      "status": "experimental",
+      "scope": "Blank saved TREBI test page only; native documented API",
+      "issue": "AB 1771-IAD fixture verified for attributes plus first input/common; NOT Delta, remaining inputs not externally wired",
+      "evidence": "docs/extended-electrical-acceptance.md"
     }
   }
 }

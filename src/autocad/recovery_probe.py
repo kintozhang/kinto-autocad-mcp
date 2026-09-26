@@ -1,0 +1,34 @@
+"""Read-only bounded STA helper used under the recovery lock."""
+import hashlib,json,sys
+from pathlib import Path
+
+def main():
+    import pythoncom
+    from src.autocad.connection import get_connection
+    from src.autocad.com_runtime import wait_for_document,read_call
+    from src.autocad.utils import get_block_attributes
+    from src.autocad.recovery import fingerprint
+    data=json.load(sys.stdin);pythoncom.CoInitialize()
+    try:
+        app=get_connection().get_application()
+        if int(app.HWND)!=data['hwnd']:raise ValueError('Wrong instance')
+        doc=wait_for_document(app,data['path'])
+        def sample():
+            rows=[]
+            for e in doc.ModelSpace:
+                row={'handle':e.Handle,'type':e.ObjectName,'layer':e.Layer}
+                if e.ObjectName=='AcDbBlockReference':row.update(name=e.Name,attributes=get_block_attributes(e),position=list(e.InsertionPoint))
+                elif e.ObjectName=='AcDbLine':row.update(start=list(e.StartPoint),end=list(e.EndPoint))
+                elif e.ObjectName=='AcDbText':row.update(text=e.TextString,position=list(e.InsertionPoint),height=e.Height)
+                elif e.ObjectName=='AcDbCircle':row.update(center=list(e.Center),radius=e.Radius)
+                else:raise ValueError('Recovery snapshot unsupported entity '+e.ObjectName)
+                rows.append(row)
+            p=Path(doc.FullName)
+            return {'path':str(p.resolve()),'hwnd':int(app.HWND),'saved':bool(doc.Saved),
+                    'idle':bool(app.GetAcadState().IsQuiescent) and int(doc.GetVariable('CMDACTIVE'))==0,
+                    'disk_sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'entity_count':len(rows),'objects':rows}
+        first=read_call(sample);second=read_call(sample)
+        if fingerprint(first)!=fingerprint(second):raise ValueError('Drawing changed during inspection')
+        print(json.dumps(second,ensure_ascii=True))
+    finally:pythoncom.CoUninitialize()
+if __name__=='__main__':main()

@@ -34,7 +34,7 @@ def register(mcp):
             if entry is None:
                 raise RuntimeError("Missing tool capability entry: "+function.__name__)
             if entry["default_enabled"] or os.environ.get("KINTO_MCP_EXPERIMENTAL")=="1":
-                return mcp.tool()(protocol_result(function if function.__name__ in {"get_execution_diagnostics", "plan_trebi_batch", "plan_delta_r2_io", "plan_cad_project", "audit_cad_project", "restore_cad_project"} else async_isolated(function)))
+                return mcp.tool()(protocol_result(function if function.__name__ in {"recover_cad_interruption", "get_execution_diagnostics", "plan_trebi_batch", "plan_delta_r2_io", "plan_cad_project", "audit_cad_project", "restore_cad_project"} else async_isolated(function)))
             return function
         return decorate
     return tool

@@ -911,6 +911,31 @@ def plan_delta_r2_io(spec: dict[str, Any]) -> dict[str, Any]:
 
 
 @registered_tool()
+def insert_test_parametric_connector(project_path: str, drawing_path: str, x: float, y: float, pins: list[str], purpose: str) -> dict[str, Any]:
+    """Experimental native connector, 1..8 pins, on a blank saved TREBI test page. No production support."""
+    from src.tools.native_parametric import insert
+    return insert('connector', project_path, drawing_path, x, y, purpose, pins)
+
+
+@registered_tool()
+def insert_test_plc_module(project_path: str, drawing_path: str, x: float, y: float, purpose: str) -> dict[str, Any]:
+    """Experimental whole-module 1771-IAD API fixture on blank saved TREBI page. NOT Delta. Requires independent wiring/report/reopen acceptance."""
+    from src.tools.native_parametric import insert
+    return insert('plc_fixture', project_path, drawing_path, x, y, purpose)
+
+
+@registered_tool()
+def recover_cad_interruption(action: str, expected_drawing_path: str, expected_instance_hwnd: int,
+                             operation_id: str = "", snapshot_id: str = "") -> dict[str, Any]:
+    """Inspect quarantine then release exactly reviewed saved CAD state. Never replay/undo. Inspect first; release needs returned operation_id and snapshot_id. Unsupported entities, active worker or changed state reject."""
+    from src.autocad.recovery import inspect_or_release
+    try:
+        return inspect_or_release(action, expected_drawing_path, expected_instance_hwnd, operation_id, snapshot_id)
+    except Exception as exc:
+        return {"success": False, "status": "recovery_rejected", "error": str(exc), "submitted": False}
+
+
+@registered_tool()
 def plan_cad_project(spec: dict[str, Any]) -> dict[str, Any]:
     """Plan new external mechanical/TREBI draft project; no CAD writes. Schema v1: name, output_root, discipline, pages, purpose; electrical also requires base_project."""
     from src.tools.engineering_project import plan
