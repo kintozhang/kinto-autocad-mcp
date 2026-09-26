@@ -79,7 +79,108 @@ def document_full_name(app, *, attempts=8, interval=.15):
         try:
             return read_call(lambda: app.ActiveDocument.FullName,
                              attempts=1, label="ActiveDocument.FullName")
-        except (AttributeError, ComBusyError):
+        except (AttributeError, ComBusyError) as exc:
             if attempt + 1 == attempts:
-                raise
+                raise ComBusyError(
+                    'AutoCAD active-document metadata unavailable after bounded read retries. '
+                    'Check the CAD window, remote session and modal dialogs, then verify the target drawing. '
+                    'This probe did not switch documents or retry writes.'
+                ) from exc
             time.sleep(interval)
+
+
+def create_document_from_template(app, template, destination, *, timeout=12., interval=.15):
+    """Submit Add/SaveAs once; reacquire the new document after COM metadata settles.
+
+    Caller must hold the CAD session gate. Any exception after Add requires state
+    inspection; it is never permission to replay this function.
+    """
+    template, destination = Path(template).resolve(), Path(destination).resolve()
+    if not template.is_file() or template.suffix.lower() != '.dwt':
+        raise ValueError('Existing DWT template required')
+    if destination.exists() or destination.suffix.lower() != '.dwg' or not destination.parent.is_dir():
+        raise ValueError('New DWG path in an existing directory required')
+    before = set(read_call(lambda: [d.Name for d in app.Documents]))
+    deadline = time.monotonic() + timeout
+
+    def probe(callback):
+        while True:
+            try:
+                return callback()
+            except Exception as exc:
+                if hresult(exc) not in BUSY and not isinstance(exc, AttributeError) and not (isinstance(exc, TypeError) and 'does not support enumeration' in str(exc)):
+                    raise
+                if time.monotonic() >= deadline:
+                    raise ComBusyError('New document metadata unavailable; inspect state, do not replay') from exc
+                time.sleep(interval)
+
+    add = probe(lambda: app.Documents.Add)
+    add(str(template))  # Ignore potentially untyped return proxy; never repeat Add.
+    selected = None
+    stable = 0
+    while time.monotonic() < deadline:
+        names = probe(lambda: [d.Name for d in app.Documents])
+        candidates = set(names) - before
+        if len(candidates) > 1:
+            raise RuntimeError('Multiple new documents; stop without saving')
+        if candidates:
+            name = next(iter(candidates))
+            if selected is not None and selected != name:
+                raise RuntimeError('New document identity changed')
+            selected = name
+            doc = probe(lambda: app.ActiveDocument)
+            if probe(lambda: doc.Name) != selected:
+                raise RuntimeError('New document is not active; stop without saving')
+            idle = probe(lambda: bool(app.GetAcadState().IsQuiescent) and int(doc.GetVariable('CMDACTIVE')) == 0)
+            stable = stable + 1 if idle else 0
+            if stable >= 2:
+                def lookup_save():
+                    current = app.ActiveDocument
+                    if current.Name != selected:
+                        raise RuntimeError('Active document changed before SaveAs')
+                    return current.SaveAs
+                save = probe(lookup_save)
+                if destination.exists():
+                    raise ValueError('Destination appeared before SaveAs')
+                save(str(destination), 64)  # Never repeat a submitted write.
+                ready = wait_for_document(app, destination, timeout=timeout, interval=interval)
+                if not read_call(lambda: bool(ready.Saved)) or not destination.is_file():
+                    raise RuntimeError('New document save not confirmed')
+                return ready
+        time.sleep(interval)
+    raise ComBusyError('New document did not become idle; inspect state, do not replay')
+
+
+def document_inventory(app, *, attempts=12, interval=.15):
+    """Stable read-only inventory. Empty FullName is never a document identity.
+
+    Name and HWND identify this snapshot only, not a durable authorization to close.
+    Callers must revalidate before any operation; this function performs no writes.
+    """
+    previous = None
+    for attempt in range(attempts):
+        try:
+            hwnd = int(app.HWND)
+            rows = []
+            for doc in app.Documents:
+                name, path = str(doc.Name), str(doc.FullName)
+                if not name:
+                    raise ValueError('Document has no usable name')
+                rows.append({'name': name, 'path': path, 'saved': bool(doc.Saved),
+                             'identity': {'instance_hwnd': hwnd, 'name': name, 'path': path}})
+            keys = [('saved', str(Path(r['path']).resolve()).casefold()) if r['path'] else ('unsaved', r['name'].casefold()) for r in rows]
+            if len(keys) != len(set(keys)):
+                raise ValueError('Ambiguous document identities')
+            rows.sort(key=lambda r: (r['path'].casefold(), r['name'].casefold()))
+            if int(app.HWND) != hwnd:
+                raise ValueError('CAD instance changed during inventory')
+            if rows == previous:
+                return rows
+            previous = rows
+        except Exception as exc:
+            if hresult(exc) not in BUSY and not isinstance(exc, AttributeError) and not (isinstance(exc, TypeError) and 'does not support enumeration' in str(exc)):
+                raise
+            previous = None
+        if attempt + 1 < attempts:
+            time.sleep(interval)
+    raise ComBusyError('Document inventory did not stabilize; no writes submitted')

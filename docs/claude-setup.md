@@ -1,7 +1,7 @@
 # Claude 订阅接入
 
 与 Codex 共用本机 MCP 源码及虚拟环境，每个客户端会启动自己的服务进程。
-同一时刻只让一个客户端操作 AutoCAD；当前未实现跨进程互斥。
+同一时刻只让一个客户端操作 AutoCAD；现已实现跨客户端会话互斥；旧服务需重启以加载。
 
 ## Claude Code（默认）
 
@@ -13,7 +13,7 @@ CLAUDE.md 提供项目入口规则。
 在 C:\kinto\Autocad-mcp 启动 Claude Code，通过 /login 选择 Claude 订阅账户；
 用 /mcp 核查 kinto_autocad。首次项目 MCP 可能需要客户端的项目信任/启用操作，
 本次初始化不代替账户登录或客户端确认。
-项目配置未设置自动放行写操作；上游服务仍注册全部工具，先只调用查询工具。
+项目配置未设置自动放行写操作；服务默认仅提供经筛选的工具集，实验工具保持隐藏。
 Codex 示例的 enabled_tools 不是 Claude 配置字段，不可直接复制过去。
 
 不要给 Claude Code 配置 ANTHROPIC_API_KEY；如启动环境已有该变量，
@@ -29,7 +29,7 @@ Codex 示例的 enabled_tools 不是 Claude 配置字段，不可直接复制过
 %APPDATA%\Claude\claude_desktop_config.json；实际以客户端打开的位置为准。
 完全退出并重新启动客户端后检查服务。
 
-本次仅生成 Desktop 示例，不修改它的全局配置。
+2026-09-26 已按用户选择添加本机 Claude Desktop 配置。新进程 stdio 握手通过；桌面客户端重启加载仍须单独确认。
 本地 stdio 服务无法直接供普通 Claude 网页访问。
 
 ## Computer Use

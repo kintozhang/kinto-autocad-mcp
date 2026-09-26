@@ -36,7 +36,7 @@ def test_metadata_fresh_lookup_is_bounded():
     app=App()
     assert com_runtime.document_full_name(app, interval=0)=='test.dwg'
     assert app.calls==3
-    with pytest.raises(AttributeError):
+    with pytest.raises(com_runtime.ComBusyError):
         com_runtime.document_full_name(App(), attempts=2, interval=0)
 
 def test_long_expression_uses_short_single_submission(tmp_path, monkeypatch):

@@ -61,7 +61,9 @@ def test_all_pages_preflight_before_write_and_stop_on_first_failure(spec,tmp_pat
             obj=MagicMock();obj.ObjectName='AcDbBlockReference';obj.Name=name
             objects.append(obj)
         doc.ModelSpace=objects;docs.append(doc)
-    if populated:docs[-1].ModelSpace.append(MagicMock(ObjectName='AcDbLine'))
+    if populated:
+        docs[-1].ModelSpace.append(MagicMock(ObjectName='AcDbLine'))
+        docs[-1].Saved=False  # Populated-drawing rejection must precede unsaved-state rejection.
     conn=MagicMock();app=conn.get_application.return_value;app.HWND=7;app.Documents=docs;app.ActiveDocument=docs[-1]
     conn.get_active_document.side_effect=lambda:app.ActiveDocument
     for doc in docs:doc.Activate.side_effect=lambda d=doc:setattr(app,'ActiveDocument',d)
@@ -73,12 +75,14 @@ def test_all_pages_preflight_before_write_and_stop_on_first_failure(spec,tmp_pat
         stack.enter_context(patch('src.autocad.utils.get_block_attributes',side_effect=lambda obj:batch.settings('54') if obj.Name=='WD_M' else {'PAGE':'54','OF':'2','PREV':'-','NEXT':'112'}))
         stack.enter_context(patch('src.autocad.com_runtime.wait_for_document',side_effect=lambda a,p:a.ActiveDocument))
         stack.enter_context(patch('src.autocad.lisp_bridge.evaluate',return_value=True))
+        stack.enter_context(patch('src.autocad.engineering_archive.backup_saved_project',return_value={'files':[],'path':'fixture'}))
         configure=stack.enter_context(patch.object(batch,'configure',side_effect=RuntimeError('write outcome unknown')))
         insert=stack.enter_context(patch('src.tools.native_electrical.insert_symbol'))
         result=batch.execute(str(project),spec,docs[-1].FullName)
     insert.assert_not_called()
     if populated:
         configure.assert_not_called()
+        assert 'populated drawings' in result['error']
         for doc in docs:doc.Activate.assert_not_called()
         assert result['status']=='preflight_rejected' and result['submitted'] is False
     else:
@@ -86,4 +90,22 @@ def test_all_pages_preflight_before_write_and_stop_on_first_failure(spec,tmp_pat
         assert result['status']=='partial_or_unknown' and result['automatic_retry'] is False
         journal=json.loads(Path(result['receipt']).read_text(encoding='utf8'))
         assert journal['steps'][-1]['step']=='grid:54'
-        assert journal['steps'][-1]['status']=='entered'
+        assert journal['steps'][-1]['status']=='failed_or_unknown'
+        assert journal['failed_step']=='grid:54'
+        assert journal['steps'][-1]['automatic_retry'] is False
+        assert 'write outcome unknown' in journal['steps'][-1]['error']
+
+@pytest.mark.parametrize('defect',['wrong_pin','wrong_handle','missing_endpoint','wrong_layer','wrong_number','failure'])
+def test_final_wire_checks_catch_identity_changes_even_with_matching_number(defect):
+    from src.tools.trebi_batch import verify_wire_readback
+    link={'id':'w','from_id':'a','to_id':'b','from_connection':'X1TERM01','to_connection':'X4TERM01','wire_layer':'TEST_SIGNAL'}
+    entities={'a':{'handle':'AB'},'b':{'handle':'CD'}}
+    result={'success':True,'connections':[['ab','X1TERM01'],['cd','X4TERM01']],'wire_layer':'TEST_SIGNAL','wire_number':'101'}
+    assert verify_wire_readback(link,entities,result,'101')['success']
+    if defect=='wrong_pin':result['connections'][1][1]='X4TERM02'
+    if defect=='wrong_handle':result['connections'][1][0]='EF'
+    if defect=='missing_endpoint':result['connections'].pop()
+    if defect=='wrong_layer':result['wire_layer']='OTHER_POTENTIAL'
+    if defect=='wrong_number':result['wire_number']='102'
+    if defect=='failure':result['success']=False
+    with pytest.raises(RuntimeError):verify_wire_readback(link,entities,result,'101')

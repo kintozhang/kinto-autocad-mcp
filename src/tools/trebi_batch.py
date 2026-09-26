@@ -19,6 +19,12 @@ SYMBOLS = {'primary': ('HCR1', {'X4TERM01','X1TERM02'}),
            'destination': ('HA1D3', {'X1TERM01'})}
 
 def plan(spec):
+    if isinstance(spec, dict) and spec.get("schema_version") == 3:
+        from src.tools.delta_three_page import plan as three_page_plan
+        return three_page_plan(spec)
+    if isinstance(spec, dict) and spec.get("schema_version") == 2:
+        from src.tools.delta_batch import plan as delta_plan
+        return delta_plan(spec)
     if not isinstance(spec, dict) or set(spec) != {'schema_version','manifest','components','connections'} or spec['schema_version'] != 1:
         raise ValueError('Expected version 1 manifest, components and connections')
     pages = page_plan(spec['manifest'])
@@ -123,6 +129,19 @@ def plan(spec):
             'scope':'prepared_blank_trebi_pages; verified_iec2_subset; no_catalog_selection'}
 
 
+def verify_wire_readback(link, entities, result, number):
+    """Recheck terminal identities after all insertions/numbering have finished."""
+    expected={(entities[link[side+'_id']]['handle'].upper(),link[side+'_connection']) for side in ('from','to')}
+    actual={(h.upper(),tag) for h,tag in result.get('connections',[])}
+    if not result.get('success') or not expected <= actual:
+        raise RuntimeError('Final wire endpoint mismatch: '+link['id'])
+    if result.get('wire_layer') != link.get('wire_layer','MCP_WIRE'):
+        raise RuntimeError('Final wire layer mismatch: '+link['id'])
+    if number is not None and result.get('wire_number') != number:
+        raise RuntimeError('Final wire number mismatch: '+link['id'])
+    return {'success':True,'verified_endpoints':sorted(expected),'wire_layer':result['wire_layer'],'wire_number':result.get('wire_number')}
+
+
 def execute(project_path,spec,drawing_path):
     from src.autocad.connection import get_connection
     from src.autocad.com_runtime import read_call,wait_for_document
@@ -139,7 +158,7 @@ def execute(project_path,spec,drawing_path):
         if project.with_suffix('.wdt').read_text(encoding='utf8')!=WDT.read_text(encoding='utf8'): raise ValueError('Unverified WDT mapping')
         lines=project.read_text(encoding='utf-8-sig').splitlines()
         if [v for v in lines if v.startswith('*[20]')]!=['*[20]'+str(recipe['pages']['effective_drawing_count'])]: raise ValueError('LINE20 differs from effective page count')
-        if any(not (LIB/(c['symbol']+'.dwg')).is_file() for c in recipe['components']): raise ValueError('Verified IEC2 symbol library missing')
+        if any(not Path(c.get('symbol_path', LIB/(c['symbol']+'.dwg'))).is_file() for c in recipe['components']): raise ValueError('Verified IEC2 symbol library missing')
         conn=get_connection(); app=conn.get_application(); hwnd=read_call(lambda:int(app.HWND))
         if Path(read_call(lambda:app.ActiveDocument.FullName)).resolve()!=original.resolve(): raise ValueError('Wrong active target')
         state=guard(conn,str(project))
@@ -147,26 +166,43 @@ def execute(project_path,spec,drawing_path):
         docs={str(Path(d.FullName).resolve()).casefold():d for d in app.Documents if d.FullName}
         for filename,row in bound.items():
             doc=docs.get(filename)
-            if doc is None or not read_call(lambda:bool(doc.Saved)): raise ValueError('Every target page must already be open and saved')
+            if doc is None: raise ValueError('Every target page must already be open and saved')
             objects=list(doc.ModelSpace)
             if len(objects)!=2 or any(e.ObjectName!='AcDbBlockReference' for e in objects) or {e.Name for e in objects}!={'WD_M',profile()['block_name']}:
                 raise ValueError('Batch requires blank WD_M + TREBI frame; never replay into populated drawings')
+            if not read_call(lambda:bool(doc.Saved)): raise ValueError('Every target page must already be open and saved')
             attrs={e.Name:get_block_attributes(e) for e in objects}
             if not set(settings(row['logical_page']))<=set(attrs['WD_M']) or not set(row['title_fields'])<=set(attrs[profile()['block_name']]): raise ValueError('Missing native/title attributes')
     except Exception as exc:
         return {'success':False,'status':'preflight_rejected','submitted':False,'error':str(exc)}
     folder=ROOT/'work/batches'/uuid.uuid4().hex;folder.mkdir(parents=True)
+    try:
+        from src.autocad.engineering_archive import backup_saved_project, digest
+        saved_backup=backup_saved_project(project,state,folder/'backup')
+        if guard(conn,str(project))!=state:raise ValueError('Project changed during backup')
+        if any(not read_call(lambda d=docs[name]:bool(d.Saved)) for name in bound):raise ValueError('Drawing modified during backup')
+        if any(digest(project.parent / row['path'])!=row['sha256'] for row in saved_backup['files']):raise ValueError('Saved files changed during backup')
+    except Exception as exc:
+        result={'success':False,'status':'preflight_rejected','submitted':False,'error':str(exc),'backup_candidate':str(folder/'backup')}
+        (folder/'report.json').write_text(json.dumps(result,indent=2),encoding='utf8')
+        return result
     receipt=folder/'report.json'
     report={'success':False,'status':'running','submitted':True,'project':str(project),'drawings':state['drawings'],
-            'manifest':spec['manifest'],'component_plan':recipe['component_plan'],'steps':[],
+            'backup':saved_backup,'manifest':spec['manifest'],'component_plan':recipe['component_plan'],'steps':[],
             'entities':{},'wires':{},'settings':{},'titles':{},'references':{},'reports':{},'receipt':str(receipt)}
     def persist():
         temp=receipt.with_suffix('.tmp');temp.write_text(json.dumps(report,ensure_ascii=True,indent=2),encoding='utf8');temp.replace(receipt)
     def step(name,call):
         item={'step':name,'status':'entered'};report['steps'].append(item);persist()
-        value=call();item['result']=value
+        try:
+            value=call();item['result']=value
+        except Exception as exc:
+            item.update(status='failed_or_unknown',error=str(exc),automatic_retry=False)
+            report['failed_step']=name
+            persist()
+            raise
         if isinstance(value,dict) and value.get('success') is False:
-            item['status']='failed';persist();raise RuntimeError(name+': '+str(value))
+            item['status']='failed';report['failed_step']=name;persist();raise RuntimeError(name+': '+str(value))
         item['status']='completed';persist();return value
     def activate(path):
         if read_call(lambda:int(app.HWND))!=hwnd: raise RuntimeError('AutoCAD instance changed')
@@ -191,12 +227,15 @@ def execute(project_path,spec,drawing_path):
         # Parents before children, irrespective of manifest drawing order.
         for c in sorted(recipe['components'],key=lambda c:c['role']!='primary'):
             path=by_page[c['drawing_page']];step('activate:'+c['id'],lambda:activate(path) and None)
-            result=step('insert:'+c['id'],lambda:insert_symbol(str(LIB/(c['symbol']+'.dwg')),c['x'],c['y'],attributes=c['attributes']))
+            result=step('insert:'+c['id'],lambda:insert_symbol(str(c.get('symbol_path',LIB/(c['symbol']+'.dwg'))),c['x'],c['y'],attributes=c['attributes']))
             report['entities'][c['id']]={**result,'drawing':path};persist()
+            if c['role']=='delta_r2_test':
+                from src.tools.delta_batch import verify_insert
+                step('verify_r2_inventory',lambda:verify_insert(result))
         for link in recipe['connections']:
             a=report['entities'][link['from_id']];b=report['entities'][link['to_id']]
             step('activate:'+link['id'],lambda:activate(a['drawing']) and None)
-            wire=step('wire:'+link['id'],lambda:connect_terminals(a['handle'],link['from_connection'],b['handle'],link['to_connection']))
+            wire=step('wire:'+link['id'],lambda:connect_terminals(a['handle'],link['from_connection'],b['handle'],link['to_connection'],wire_layer=link.get('wire_layer','MCP_WIRE')))
             report['wires'][link['id']]=wire;persist()
             if link.get('wire_number'): step('number:'+link['id'],lambda:set_number(wire['wire_handles'][0],link['wire_number']))
         for sheet,path in by_page.items():
@@ -226,7 +265,7 @@ def execute(project_path,spec,drawing_path):
                     if ends:
                         partners={c['id'] for c in recipe['components'] if c.get('signal_code')==ends[0]['signal_code']}
                         number=next((w['wire_number'] for w in recipe['connections'] if w.get('wire_number') and partners.intersection({w['from_id'],w['to_id']})),None)
-                if number is not None and result['wire_number']!=number: raise RuntimeError('Final wire number mismatch')
+                step('verify_wire:'+link['id'],lambda:verify_wire_readback(link,report['entities'],result,number))
             step('save:'+sheet,save_active)
         for kind in ['bom','from_to','terminal_plan','terminal_numbers']:
             report['reports'][kind]=step('report:'+kind,lambda:export_report(str(project),kind,str(folder/(kind+'.csv'))))

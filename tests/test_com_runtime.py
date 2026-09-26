@@ -79,3 +79,18 @@ def test_busy_singleton_does_not_reattach():
     with patch.object(connection,'_connection_instance',conn),patch.object(conn,'is_connected',side_effect=AutoCADBusyError('busy')),patch.object(conn,'connect') as connect:
         with pytest.raises(AutoCADBusyError):connection.get_connection()
     connect.assert_not_called()
+
+
+def test_document_name_exhaustion_reports_actionable_read_only_diagnostic():
+    from src.autocad.com_runtime import document_full_name
+    class App:
+        calls=0
+        @property
+        def ActiveDocument(self):
+            self.calls+=1
+            raise AttributeError('<unknown>.FullName')
+    app=App()
+    with pytest.raises(ComBusyError,match='active-document metadata unavailable') as error:
+        document_full_name(app,attempts=3,interval=0)
+    assert app.calls==3
+    assert isinstance(error.value.__cause__,AttributeError)

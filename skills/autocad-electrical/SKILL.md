@@ -28,3 +28,6 @@ export_electrical_project_report可导出已验收的原生BOM、元件、From-T
 写操作传expected_drawing_path；确认目标实例时传expected_instance_hwnd。MCP与UI串行；需要对话框先读取本机Computer Use技能。结果未知时用get_execution_diagnostics及实际对象/原生回执核对，不重放写入；本机COM仍可能拒绝调用。
 
 PLC模块、完整I/O映射、连接器/电缆芯线、柜内布局与安全双通道尚未完整验收。Delta CNC/远程I/O输入见[资料清单](../../docs/delta-cnc-io-intake.md)。未知型号或引脚标待核实；不通过普通几何或文字伪造Electrical语义。最终验收包括保存重开、确切跨引用、接线及BOM报表，出图时另做全页视觉检查。
+
+
+TREBI PDF导航：synthetic_trebi_a3默认按原生信号XREF及标题PREV/NEXT边界生成内部跳转，按逻辑页清单解析目标，附PAGE书签；不可将逻辑页号当PDF页序。当前仅单一page.zone信号引用，不自动链接PLC POSITION或多项触点引用。无法唯一识别打印图框或目标页缺失时拒绝生成。证据见[导航验收](../../docs/pdf-navigation-validation.md)。

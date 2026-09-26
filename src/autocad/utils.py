@@ -214,17 +214,14 @@ def get_block_attributes(block_ref: Any) -> dict[str, str]:
     dict[str, str]
         Mapping of attribute tag (uppercase) to text value.
     """
-    attrs: dict[str, str] = {}
-    try:
-        attribs = block_ref.GetAttributes()
-        for attr in attribs:
-            try:
-                attrs[attr.TagString.upper()] = attr.TextString
-            except Exception:
-                pass
-    except Exception as exc:
-        logger.debug("get_block_attributes failed: %s", exc)
-    return attrs
+    # A partial attribute set is not a valid readback. Retry only known busy
+    # HRESULTs, rebuilding the whole snapshot each time; propagate other errors.
+    from src.autocad.com_runtime import read_call
+    return read_call(
+        lambda: {attr.TagString.upper(): attr.TextString
+                 for attr in block_ref.GetAttributes()},
+        label="complete block attribute snapshot",
+    )
 
 
 def set_block_attributes(block_ref: Any, attributes: dict[str, str]) -> int:

@@ -473,6 +473,13 @@
       "replacement": null,
       "issue": "D0 suffix, exact ESI, NC50 addresses and native PLC symbols pending",
       "evidence": "docs/delta-io-planning.md"
+    },
+    "execute_trebi_test_change": {
+      "status": "live_synthetic_verified",
+      "default_enabled": false,
+      "scope": "Exact synthetic lamp and R2 channel fixture only",
+      "issue": "Exact synthetic lamp and Y00-to-Y01 case only; default hidden; no production support",
+      "evidence": "docs/trebi-test-change-validation.md"
     }
   }
 }

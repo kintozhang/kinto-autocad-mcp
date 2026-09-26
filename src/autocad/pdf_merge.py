@@ -13,6 +13,29 @@ def fingerprint(page):
             'cropbox': [float(v) for v in page.cropbox], 'rotation': page.rotation}
 
 
+def is_shx_annotation(annotation):
+    return (annotation.get('/Subtype') in {'/Square', '/Text'}
+            and str(annotation.get('/T', '')).strip() == 'AutoCAD SHX Text')
+
+
+def remove_shx_annotations(page):
+    """Remove only exporter-owned SHX notes and their associated popup objects."""
+    from pypdf.generic import ArrayObject, NameObject
+    refs = list(page.get('/Annots', []))
+    kept = []
+    for ref in refs:
+        annotation = ref.get_object()
+        parent = annotation.get('/Parent')
+        owned_popup = (annotation.get('/Subtype') == '/Popup' and parent is not None
+                       and is_shx_annotation(parent.get_object()))
+        if not is_shx_annotation(annotation) and not owned_popup:
+            kept.append(ref)
+    if len(kept) != len(refs):
+        if kept: page[NameObject('/Annots')] = ArrayObject(kept)
+        else: del page['/Annots']
+    return len(refs) - len(kept)
+
+
 def merge(manifest_path, output):
     manifest_path, output = Path(manifest_path).resolve(strict=True), Path(output).resolve()
     if output.exists():
@@ -28,6 +51,7 @@ def merge(manifest_path, output):
         raise ValueError('Duplicate inputs or output conflicts')
     writer = PdfWriter()
     readers, expected = [], []
+    shx_removed = []
     for entry, path in zip(entries, paths):
         if hashlib.sha256(path.read_bytes()).hexdigest() != entry['raw_sha256']:
             raise ValueError('Raw PDF hash mismatch')
@@ -40,7 +64,10 @@ def merge(manifest_path, output):
             raise ValueError('Expected unrotated landscape A3')
         expected.append(fp)
         # Copy page resources with pypdf; malformed document XMP is intentionally not copied.
-        writer.add_page(page)
+        copied = writer.add_page(page)
+        shx_removed.append(remove_shx_annotations(copied))
+    from src.autocad.pdf_navigation import add_navigation, verify
+    navigation=add_navigation(writer,entries)
     writer.pdf_header = max(r.pdf_header for r in readers)
     writer.add_metadata({'/Title': 'Synthetic electrical project - NOT FOR CONSTRUCTION'})
     temp = output.with_suffix('.partial.pdf')
@@ -51,7 +78,12 @@ def merge(manifest_path, output):
     result = PdfReader(temp, strict=True)
     if [fingerprint(p) for p in result.pages] != expected:
         raise ValueError('Merged page streams, order or geometry changed; partial file retained')
+    if any(is_shx_annotation(a.get_object()) for p in result.pages for a in p.get("/Annots", [])):
+        raise ValueError("SHX annotation cleanup readback failed")
+    verify(result,navigation)
+    if navigation['status']=='created':navigation['status']='readback_verified'
     temp.rename(output)
     return {'status': 'STRUCTURE_VERIFIED', 'pages': len(expected),
-            'output': str(output), 'page_fingerprints': expected,
+            'output': str(output), 'page_fingerprints': expected, 'navigation': navigation,
+            'shx_annotations_removed': sum(shx_removed), 'shx_removed_per_page': shx_removed,
             'page_order': [e['source_dwg'] for e in entries], 'visual_review': 'PENDING'}

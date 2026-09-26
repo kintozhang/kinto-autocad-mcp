@@ -107,6 +107,8 @@ def plot_snapshot(source, staging, app, expected_hashes=None, template_mode="syn
                 identity=trebi_page(doc,len(pages))
                 if identity!=trebi_pages[index-1]: raise RuntimeError('Copied TREBI identity changed')
                 item.update(identity)
+                from src.autocad.pdf_navigation import collect
+                item['navigation']=collect(doc, 'KINTO_TREBI_ELECTRICAL_A3')
                 # Margin above the 0..9 header; do not cover circuit content or overwrite PAGE/OF.
                 point=win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_R8,(10.,292.,0.))
                 doc.ModelSpace.AddText(f'SYNTHETIC TEST - NOT FOR CONSTRUCTION - NTS / PDF SHEET {index}/{len(pages)}',point,2.)

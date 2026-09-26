@@ -854,6 +854,13 @@ def export_electrical_project_pdf(project_path: str, output_path: str,
 
 
 @registered_tool()
+def execute_trebi_test_change(project_path: str, drawing_path: str, spec: dict[str, Any]) -> dict[str, Any]:
+    """Restricted saved synthetic fixture only: lamp replacement or Y00-to-Y01 rewire. No production support; partial failures never replay."""
+    from src.tools.trebi_test_changes import execute
+    return execute(project_path, drawing_path, spec)
+
+
+@registered_tool()
 def get_execution_diagnostics() -> dict[str, Any]:
     """Read local operation receipts and interruption marker without contacting AutoCAD."""
     from src.autocad.isolated import diagnose
@@ -875,11 +882,11 @@ def plan_trebi_batch(spec: dict[str, Any]) -> dict[str, Any]:
 
 @registered_tool()
 def execute_trebi_batch(project_path: str, spec: dict[str, Any], drawing_path: str) -> dict[str, Any]:
-    """Execute verified IEC2 TREBI recipe on 1..8 prepared blank project pages.
+    """Execute TREBI v1, Delta test_only v2 (one page) or v3 (three DI/DO pages).
 
     All pages must be open/saved, WDT and LINE20 must match manifest. Applies
     grid/title rules, inserts relay/NO contact/terminals/signal arrows, connects
-    horizontal wires, numbers, updates references, saves and exports reports.
+    v1 horizontal wires or fixed v2 Delta wiring, numbers, references and reports.
     Stops on first failure; partial writes are never rolled back or replayed.
     Returns durable per-step receipt. Independent reopen/visual review required.
     """
