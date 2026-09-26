@@ -1,0 +1,478 @@
+{
+  "schema_version": 1,
+  "tools": {
+    "draw_line": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "2D WCS line endpoints; eight sample centre marks",
+      "replacement": null,
+      "issue": null,
+      "evidence": "work/acceptance/dimensions-20260924-172043/report.json"
+    },
+    "draw_circle": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Four XY circles, radius3",
+      "replacement": null,
+      "issue": null,
+      "evidence": "docs/live-validation-20260924.md"
+    },
+    "draw_arc": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "draw_text": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "ASCII sample labels; multilingual fonts not accepted",
+      "replacement": null,
+      "issue": null,
+      "evidence": "docs/live-validation-20260924.md"
+    },
+    "draw_rectangle": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "120x80 closed plate, area9600",
+      "replacement": null,
+      "issue": null,
+      "evidence": "docs/live-validation-20260924.md"
+    },
+    "draw_polyline": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "zoom_extents": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Sample view; not plot-scale validation",
+      "replacement": null,
+      "issue": null,
+      "evidence": "docs/live-validation-20260924.md"
+    },
+    "set_layer": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "draw_line_3d": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "draw_polyline_3d": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "draw_3d_face": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "draw_box": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "draw_sphere": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "draw_cylinder": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "draw_cone": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "zoom_3d_view": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "set_ucs": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "get_autocad_info": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Observed Electrical2026 process/version; other variants not accepted",
+      "replacement": null,
+      "issue": null,
+      "evidence": "docs/live-validation-20260924.md"
+    },
+    "insert_electrical_symbol": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "HCR1/HT0001/HFU1/HPB11/HA1S1/HA1D3 sample insertion",
+      "replacement": null,
+      "issue": null,
+      "evidence": "docs/project-validation-20260924.md"
+    },
+    "insert_ladder": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Command submission only; now returns submitted_unverified, not success"
+    },
+    "get_symbol_list": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Real IEC2 DWG file search; six named symbols have semantic evidence",
+      "replacement": null,
+      "issue": null,
+      "evidence": "work/acceptance/dimensions-20260924-172043/report.json"
+    },
+    "set_wire_number": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": "set_electrical_wire_number",
+      "issue": "Command submission only; now returns submitted_unverified, not success"
+    },
+    "insert_plc_module": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Command submission only; now returns submitted_unverified, not success"
+    },
+    "create_cross_reference": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Command submission only; now returns submitted_unverified, not success"
+    },
+    "edit_component_attributes": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "draw_wire": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "number_wires": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": "set_electrical_wire_number",
+      "issue": "Command submission only; now returns submitted_unverified, not success"
+    },
+    "get_wire_numbers": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "set_wire_attributes": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "create_wire_from_to": {
+      "status": "disabled_unsafe_legacy",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": "connect_electrical_terminals",
+      "issue": "Block insertion point is not a terminal"
+    },
+    "get_component_list": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "get_component_info": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "update_component": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "delete_component": {
+      "status": "disabled_unsafe_legacy",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Deleting block does not prove wire repair or Electrical database update"
+    },
+    "move_component": {
+      "status": "disabled_unsafe_legacy",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Moving block does not prove wire-follow or Electrical database update"
+    },
+    "search_components": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "generate_bom": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": "export_electrical_project_report",
+      "issue": "Unverified native effects"
+    },
+    "generate_wire_list": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": "export_electrical_project_report",
+      "issue": "Unverified native effects"
+    },
+    "generate_terminal_plan": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Legacy scan is not a native terminal-strip report"
+    },
+    "generate_plc_io_list": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "PLC report extraction not verified"
+    },
+    "get_project_summary": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "get_project_info": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": "get_electrical_project",
+      "issue": "Unverified native effects"
+    },
+    "list_drawings": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Open document list; not WDP membership",
+      "replacement": null,
+      "issue": null,
+      "evidence": "docs/live-validation-20260924.md"
+    },
+    "open_drawing": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "close_drawing": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": null,
+      "issue": "Unverified native effects"
+    },
+    "sync_project": {
+      "status": "unverified",
+      "default_enabled": false,
+      "scope": "Code exists; no complete native acceptance",
+      "replacement": "update_electrical_signals",
+      "issue": "Command submission only; now returns submitted_unverified, not success"
+    },
+    "get_active_drawing": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Active DWG query",
+      "replacement": null,
+      "issue": null,
+      "evidence": "docs/live-validation-20260924.md"
+    },
+    "get_electrical_connections": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "X[01248]TERMnn attributes on sample symbols",
+      "replacement": null,
+      "issue": null,
+      "evidence": "docs/project-validation-20260924.md"
+    },
+    "connect_electrical_terminals": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Aligned links, two three-segment offset routes, and electrically isolated crossing sample; all returned segment networks checked",
+      "replacement": null,
+      "issue": "Sequential duplicate prevention verified; concurrent cross-client writes and arbitrary obstructions not accepted",
+      "evidence": "docs/branch-pdf-validation.md"
+    },
+    "set_electrical_wire_number": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Normal sample wire numbers100..103",
+      "replacement": null,
+      "issue": null,
+      "evidence": "docs/project-validation-20260924.md"
+    },
+    "get_electrical_wire": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Native sample wire number/netlist/geometry",
+      "replacement": null,
+      "issue": null,
+      "evidence": "docs/project-validation-20260924.md"
+    },
+    "get_electrical_project": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Two-page WDP membership",
+      "replacement": null,
+      "issue": null,
+      "evidence": "docs/project-validation-20260924.md"
+    },
+    "update_electrical_signals": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Current-page source/destination signals; parent/child references excluded",
+      "replacement": null,
+      "issue": null,
+      "evidence": "docs/project-validation-20260924.md"
+    },
+    "export_electrical_project_report": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Native bom, components, from_to; terminal_plan and terminal_numbers accepted on synthetic 3-page fixture",
+      "replacement": null,
+      "issue": null,
+      "evidence": "docs/contact-terminal-validation.md"
+    },
+    "get_tool_capabilities": {
+      "status": "metadata",
+      "default_enabled": true,
+      "scope": "Read-only declared capability catalogue"
+    },
+    "add_aligned_dimension": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Measured XY dimensions120/80/100/60; non-associative",
+      "issue": null,
+      "evidence": "work/acceptance/dimensions-20260924-172043/report.json"
+    },
+    "add_diameter_dimension": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "XY circle diameter6; non-associative",
+      "issue": null,
+      "evidence": "work/acceptance/dimensions-20260924-172043/report.json"
+    },
+    "get_dimension_info": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Aligned/diametric Measurement/type/override readback",
+      "issue": null,
+      "evidence": "work/acceptance/dimensions-20260924-172043/report.json"
+    },
+    "update_electrical_cross_references": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "HCR1 parent with HCR21 NO and HCR22 NC children across pages; native formatting and reopened attributes verified",
+      "issue": "A COM transient after submission required independent recovery verification; larger contact sets and different-location duplicates not live accepted",
+      "replacement": null,
+      "evidence": "docs/multicontact-crossing-validation.md"
+    },
+    "branch_electrical_terminal_to_wire": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Two aligned T taps/four HT0001 terminals; normal and fixed 501 preserved; pin caches, native project reports and reopen verified",
+      "issue": "Cross-page buses, obstacles, nonaligned branches and cross-client concurrency unverified",
+      "replacement": null,
+      "evidence": "docs/branch-project-validation.md"
+    },
+    "export_electrical_project_pdf": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Synthetic DIN, bilingual KINTO or TREBI A3 copies; TREBI logical page/grid/navigation preflight; two-page TREBI PDF visual/reopen/report acceptance",
+      "issue": "Synthetic templates only; visual review required; helper timeout does not cancel CAD commands; no automatic recovery",
+      "evidence": "docs/trebi-pdf-validation.md"
+    },
+    "get_execution_diagnostics": {
+      "status": "metadata",
+      "default_enabled": true,
+      "scope": "Local operation records only; no COM access or automatic recovery"
+    },
+    "plan_trebi_batch": {
+      "status": "offline_and_stdio_verified",
+      "default_enabled": true,
+      "scope": "Pure TREBI batch preflight: pages/tags/reference expectations; no CAD scan",
+      "replacement": null,
+      "issue": "Prepared blank-page recipe only; no catalog selection",
+      "evidence": "docs/trebi-batch-validation.md"
+    },
+    "execute_trebi_batch": {
+      "status": "live_sample_verified",
+      "default_enabled": true,
+      "scope": "Two-page IEC2 relay/contact/terminals/signals; native title/grid, wires, references, reports and independent reopen accepted",
+      "replacement": null,
+      "issue": "Requires prepared blank pages; only verified IEC2 subset; general 8-page limit not full-range acceptance",
+      "evidence": "docs/trebi-batch-validation.md"
+    },
+    "plan_delta_r2_io": {
+      "status": "offline_and_stdio_verified",
+      "default_enabled": true,
+      "scope": "Read-only R2-EC0902 family channel/common/PDO-group draft; no CAD contact",
+      "replacement": null,
+      "issue": "D0 suffix, exact ESI, NC50 addresses and native PLC symbols pending",
+      "evidence": "docs/delta-io-planning.md"
+    }
+  }
+}

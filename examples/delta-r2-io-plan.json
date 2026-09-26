@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "modules": [
+    {
+      "id": "IO_A",
+      "model": "R2-EC0902D0",
+      "input_mode": "PNP"
+    },
+    {
+      "id": "IO_B",
+      "model": "R2-EC0902D0",
+      "input_mode": "PNP"
+    }
+  ],
+  "signals": [
+    {
+      "id": "INPUT_TEST",
+      "module_id": "IO_A",
+      "port": 0,
+      "channel": 0,
+      "direction": "input",
+      "purpose": "ordinary_control",
+      "potential": "24V_TEST_INPUT",
+      "source_signal": "SYNTHETIC_SWITCH"
+    },
+    {
+      "id": "LAMP_TEST",
+      "module_id": "IO_A",
+      "port": 2,
+      "channel": 0,
+      "direction": "output",
+      "purpose": "ordinary_control",
+      "potential": "24V_TEST_OUTPUT",
+      "source_signal": "SYNTHETIC_LAMP"
+    },
+    {
+      "id": "INPUT_B_TEST",
+      "module_id": "IO_B",
+      "port": 0,
+      "channel": 0,
+      "direction": "input",
+      "purpose": "ordinary_control",
+      "potential": "24V_TEST_INPUT",
+      "source_signal": "SYNTHETIC_SWITCH_B"
+    }
+  ]
+}

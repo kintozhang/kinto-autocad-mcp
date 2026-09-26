@@ -55,7 +55,7 @@ _cfg = get_config()
 _mcp_cfg = _cfg.mcp
 
 # Detect AutoCAD variant (Electrical / Standard / none)
-_acad_info = _detect_autocad()
+_acad_info = _detect_autocad(allow_com=False)
 logger.info(
     "AutoCAD variant: %s | running: %s | method: %s",
     _acad_info.variant, _acad_info.running, _acad_info.detection_method,
@@ -65,6 +65,9 @@ logger.info(
 mcp = FastMCP(
     name=_mcp_cfg.get("server_name", "autocad-mcp"),
 )
+
+from src.tool_policy import register
+registered_tool = register(mcp)
 
 # ---------------------------------------------------------------------------
 # Lazy AutoCAD connection (attempt at startup but don't fail if not running)
@@ -99,33 +102,35 @@ from src.tools import drawing3d
 # Drawing tools  (2D — available for both Standard and Electrical)
 # ===========================================================================
 
-@mcp.tool()
+@registered_tool()
 def draw_line(
     x1: float,
     y1: float,
     x2: float,
     y2: float,
     layer: str = "0",
+    drawing_path: str = "",
 ) -> dict[str, Any]:
-    """Draw a line from (x1, y1) to (x2, y2) on the specified layer.
+    """Optional drawing_path must match the active DWG; worker validates before entry. Draw a line from (x1, y1) to (x2, y2) on the specified layer.
 
     Returns a dict with success status and the entity handle on success.
     """
     return drawing.draw_line(x1, y1, x2, y2, layer)
 
 
-@mcp.tool()
+@registered_tool()
 def draw_circle(
     cx: float,
     cy: float,
     radius: float,
     layer: str = "0",
+    drawing_path: str = "",
 ) -> dict[str, Any]:
-    """Draw a circle at centre (cx, cy) with the given radius."""
+    """Optional drawing_path must match the active DWG; worker validates before entry. Draw a circle at centre (cx, cy) with the given radius."""
     return drawing.draw_circle(cx, cy, radius, layer)
 
 
-@mcp.tool()
+@registered_tool()
 def draw_arc(
     cx: float,
     cy: float,
@@ -141,31 +146,33 @@ def draw_arc(
     return drawing.draw_arc(cx, cy, radius, start_angle, end_angle, layer)
 
 
-@mcp.tool()
+@registered_tool()
 def draw_text(
     x: float,
     y: float,
     text: str,
     height: float = 2.5,
     layer: str = "0",
+    drawing_path: str = "",
 ) -> dict[str, Any]:
-    """Place a single-line text entity at (x, y) with the given height."""
+    """Optional drawing_path must match the active DWG; worker validates before entry. Place a single-line text entity at (x, y) with the given height."""
     return drawing.draw_text(x, y, text, height, layer)
 
 
-@mcp.tool()
+@registered_tool()
 def draw_rectangle(
     x1: float,
     y1: float,
     x2: float,
     y2: float,
     layer: str = "0",
+    drawing_path: str = "",
 ) -> dict[str, Any]:
-    """Draw a closed rectangular polyline from corner (x1, y1) to (x2, y2)."""
+    """Optional drawing_path must match the active DWG; worker validates before entry. Draw a closed rectangular polyline from corner (x1, y1) to (x2, y2)."""
     return drawing.draw_rectangle(x1, y1, x2, y2, layer)
 
 
-@mcp.tool()
+@registered_tool()
 def draw_polyline(
     points: list,
     closed: bool = False,
@@ -182,13 +189,13 @@ def draw_polyline(
     return drawing.draw_polyline(points, closed, layer)
 
 
-@mcp.tool()
+@registered_tool()
 def zoom_extents() -> dict[str, Any]:
     """Zoom the active viewport to fit all entities (ZOOM E)."""
     return drawing.zoom_extents()
 
 
-@mcp.tool()
+@registered_tool()
 def set_layer(
     layer_name: str,
     color: int = 7,
@@ -211,7 +218,7 @@ def set_layer(
 # 3D Drawing tools  (Standard and Electrical)
 # ===========================================================================
 
-@mcp.tool()
+@registered_tool()
 def draw_line_3d(
     x1: float, y1: float, z1: float,
     x2: float, y2: float, z2: float,
@@ -228,7 +235,7 @@ def draw_line_3d(
     return drawing3d.draw_line_3d(x1, y1, z1, x2, y2, z2, layer)
 
 
-@mcp.tool()
+@registered_tool()
 def draw_polyline_3d(
     points: list,
     closed: bool = False,
@@ -245,7 +252,7 @@ def draw_polyline_3d(
     return drawing3d.draw_polyline_3d(points, closed, layer)
 
 
-@mcp.tool()
+@registered_tool()
 def draw_3d_face(
     x1: float, y1: float, z1: float,
     x2: float, y2: float, z2: float,
@@ -261,7 +268,7 @@ def draw_3d_face(
                                    x4, y4, z4, layer)
 
 
-@mcp.tool()
+@registered_tool()
 def draw_box(
     origin_x: float, origin_y: float, origin_z: float,
     length: float, width: float, height: float,
@@ -275,7 +282,7 @@ def draw_box(
                                length, width, height, layer)
 
 
-@mcp.tool()
+@registered_tool()
 def draw_sphere(
     cx: float, cy: float, cz: float,
     radius: float,
@@ -285,7 +292,7 @@ def draw_sphere(
     return drawing3d.draw_sphere(cx, cy, cz, radius, layer)
 
 
-@mcp.tool()
+@registered_tool()
 def draw_cylinder(
     cx: float, cy: float, cz: float,
     radius: float, height: float,
@@ -295,7 +302,7 @@ def draw_cylinder(
     return drawing3d.draw_cylinder(cx, cy, cz, radius, height, layer)
 
 
-@mcp.tool()
+@registered_tool()
 def draw_cone(
     cx: float, cy: float, cz: float,
     base_radius: float, height: float,
@@ -305,7 +312,7 @@ def draw_cone(
     return drawing3d.draw_cone(cx, cy, cz, base_radius, height, layer)
 
 
-@mcp.tool()
+@registered_tool()
 def zoom_3d_view(view_type: str = "SE_ISOMETRIC") -> dict[str, Any]:
     """Switch to a 3-D view preset and zoom to extents.
 
@@ -315,7 +322,7 @@ def zoom_3d_view(view_type: str = "SE_ISOMETRIC") -> dict[str, Any]:
     return drawing3d.zoom_3d_view(view_type)
 
 
-@mcp.tool()
+@registered_tool()
 def set_ucs(
     origin_x: float = 0.0, origin_y: float = 0.0, origin_z: float = 0.0,
     x_axis_x: float = 1.0, x_axis_y: float = 0.0, x_axis_z: float = 0.0,
@@ -331,7 +338,7 @@ def set_ucs(
     )
 
 
-@mcp.tool()
+@registered_tool()
 def get_autocad_info() -> dict[str, Any]:
     """Return detected AutoCAD variant, version, features, and running state.
 
@@ -345,7 +352,7 @@ def get_autocad_info() -> dict[str, Any]:
 # Electrical tools  (AutoCAD Electrical only)
 # ===========================================================================
 
-@mcp.tool()
+@registered_tool()
 def insert_electrical_symbol(
     symbol_name: str,
     x: float,
@@ -353,24 +360,16 @@ def insert_electrical_symbol(
     rotation: float = 0.0,
     attributes: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    """Insert an AutoCAD Electrical symbol from the WD symbol library.
+    """Insert through c:wd_insym2 and verify the new block and attributes.
 
-    Parameters
-    ----------
-    symbol_name : str
-        Block name as it appears in the Electrical symbol library
-        (e.g. "WD_NOPEN", "WD_COIL").
-    x, y : float
-        Insertion point coordinates.
-    rotation : float
-        Rotation angle in degrees.
-    attributes : dict or None
-        Optional attribute overrides, e.g. {"TAG1": "101CR", "DESC1": "Motor Contactor"}.
+    Use an installed symbol name/path (e.g. HCR1 or HT0001). Requires a saved
+    Electrical drawing with WD_M. Rotation must be zero; choose H/V symbols.
+    Partial failures include created_handle: inspect before retrying.
     """
     return electrical.insert_electrical_symbol(symbol_name, x, y, rotation, attributes)
 
 
-@mcp.tool()
+@registered_tool()
 def insert_ladder(
     x_start: float,
     y_start: float,
@@ -397,20 +396,17 @@ def insert_ladder(
     return electrical.insert_ladder(x_start, y_start, rung_spacing, rung_count, voltage, phase)
 
 
-@mcp.tool()
-def get_symbol_list(category: str = "") -> dict[str, Any]:
-    """Return available AutoCAD Electrical symbol names.
+@registered_tool()
+def get_symbol_list(category: str = "", library_path: str | None = None,
+                    query: str = "", limit: int = 100, offset: int = 0) -> dict[str, Any]:
+    """List real installed DWG files with pagination. File presence does not verify a symbol.
 
-    Parameters
-    ----------
-    category : str
-        Filter by category: "contacts", "coils", "plc", "terminals",
-        "transformers", "misc", or "" for all.
+    Categories are limited to coils/terminals/fuses/buttons/signals validated examples.
+    Use category='' plus query to discover other files without inferred categories.
     """
-    return electrical.get_symbol_list(category)
+    return electrical.get_symbol_list(category, library_path, query, limit, offset)
 
-
-@mcp.tool()
+@registered_tool()
 def set_wire_number(
     wire_number: str,
     x: float,
@@ -420,7 +416,7 @@ def set_wire_number(
     return electrical.set_wire_number(wire_number, x, y)
 
 
-@mcp.tool()
+@registered_tool()
 def insert_plc_module(
     module_type: str,
     rack: int,
@@ -444,7 +440,7 @@ def insert_plc_module(
     return electrical.insert_plc_module(module_type, rack, slot, x, y)
 
 
-@mcp.tool()
+@registered_tool()
 def create_cross_reference(
     source_tag: str,
     dest_sheet: str,
@@ -464,7 +460,7 @@ def create_cross_reference(
     return electrical.create_cross_reference(source_tag, dest_sheet, dest_ref)
 
 
-@mcp.tool()
+@registered_tool()
 def edit_component_attributes(
     tag1: str,
     attributes_dict: dict[str, str],
@@ -485,7 +481,7 @@ def edit_component_attributes(
 # Wire tools
 # ===========================================================================
 
-@mcp.tool()
+@registered_tool()
 def draw_wire(
     x1: float,
     y1: float,
@@ -507,7 +503,7 @@ def draw_wire(
     return wires.draw_wire(x1, y1, x2, y2, wire_layer)
 
 
-@mcp.tool()
+@registered_tool()
 def number_wires(
     sheet: str | None = None,
     project: str | None = None,
@@ -524,13 +520,13 @@ def number_wires(
     return wires.number_wires(sheet, project)
 
 
-@mcp.tool()
+@registered_tool()
 def get_wire_numbers(sheet: str | None = None) -> dict[str, Any]:
     """Return all wire number tags in the active drawing."""
     return wires.get_wire_numbers(sheet)
 
 
-@mcp.tool()
+@registered_tool()
 def set_wire_attributes(
     tag: str,
     attributes: dict[str, str],
@@ -547,7 +543,7 @@ def set_wire_attributes(
     return wires.set_wire_attributes(tag, attributes)
 
 
-@mcp.tool()
+@registered_tool()
 def create_wire_from_to(
     from_component: str,
     to_component: str,
@@ -568,19 +564,19 @@ def create_wire_from_to(
 # Component tools
 # ===========================================================================
 
-@mcp.tool()
+@registered_tool()
 def get_component_list(drawing: str | None = None) -> dict[str, Any]:
     """List all AutoCAD Electrical components in the active drawing."""
     return components.get_component_list(drawing)
 
 
-@mcp.tool()
+@registered_tool()
 def get_component_info(tag1: str) -> dict[str, Any]:
     """Return full attribute information for the component with the given TAG1."""
     return components.get_component_info(tag1)
 
 
-@mcp.tool()
+@registered_tool()
 def update_component(
     tag1: str,
     attributes: dict[str, str],
@@ -597,13 +593,13 @@ def update_component(
     return components.update_component(tag1, attributes)
 
 
-@mcp.tool()
+@registered_tool()
 def delete_component(tag1: str) -> dict[str, Any]:
     """Remove the component identified by TAG1 from the current drawing."""
     return components.delete_component(tag1)
 
 
-@mcp.tool()
+@registered_tool()
 def move_component(
     tag1: str,
     new_x: float,
@@ -613,7 +609,7 @@ def move_component(
     return components.move_component(tag1, new_x, new_y)
 
 
-@mcp.tool()
+@registered_tool()
 def search_components(filter_criteria: dict[str, str]) -> dict[str, Any]:
     """Search for components matching one or more attribute criteria.
 
@@ -630,7 +626,7 @@ def search_components(filter_criteria: dict[str, str]) -> dict[str, Any]:
 # Report tools
 # ===========================================================================
 
-@mcp.tool()
+@registered_tool()
 def generate_bom(
     output_format: str = "csv",
     output_path: str | None = None,
@@ -647,25 +643,25 @@ def generate_bom(
     return reports.generate_bom(output_format, output_path)
 
 
-@mcp.tool()
+@registered_tool()
 def generate_wire_list(output_path: str | None = None) -> dict[str, Any]:
     """Generate a wire connection list (from-to report) as a CSV file."""
     return reports.generate_wire_list(output_path)
 
 
-@mcp.tool()
+@registered_tool()
 def generate_terminal_plan(output_path: str | None = None) -> dict[str, Any]:
     """Generate a terminal strip report as a CSV file."""
     return reports.generate_terminal_plan(output_path)
 
 
-@mcp.tool()
+@registered_tool()
 def generate_plc_io_list(output_path: str | None = None) -> dict[str, Any]:
     """Generate a PLC I/O list as a CSV file."""
     return reports.generate_plc_io_list(output_path)
 
 
-@mcp.tool()
+@registered_tool()
 def get_project_summary() -> dict[str, Any]:
     """Return a summary of open drawings, total components, and wire counts."""
     return reports.get_project_summary()
@@ -675,19 +671,19 @@ def get_project_summary() -> dict[str, Any]:
 # Project tools
 # ===========================================================================
 
-@mcp.tool()
+@registered_tool()
 def get_project_info() -> dict[str, Any]:
     """Return information about the current AutoCAD Electrical project."""
     return project.get_project_info()
 
 
-@mcp.tool()
+@registered_tool()
 def list_drawings() -> dict[str, Any]:
     """List all drawings currently open in AutoCAD."""
     return project.list_drawings()
 
 
-@mcp.tool()
+@registered_tool()
 def open_drawing(sheet_number_or_name: str) -> dict[str, Any]:
     """Switch to or open a drawing by sheet number or filename.
 
@@ -699,7 +695,7 @@ def open_drawing(sheet_number_or_name: str) -> dict[str, Any]:
     return project.open_drawing(sheet_number_or_name)
 
 
-@mcp.tool()
+@registered_tool()
 def close_drawing(save: bool = True) -> dict[str, Any]:
     """Close the currently active drawing.
 
@@ -711,13 +707,13 @@ def close_drawing(save: bool = True) -> dict[str, Any]:
     return project.close_drawing(save)
 
 
-@mcp.tool()
+@registered_tool()
 def sync_project() -> dict[str, Any]:
     """Run a project-wide update via AutoCAD Electrical's WDSYNCH command."""
     return project.sync_project()
 
 
-@mcp.tool()
+@registered_tool()
 def get_active_drawing() -> dict[str, Any]:
     """Return information about the currently active drawing."""
     return project.get_active_drawing()
@@ -726,6 +722,186 @@ def get_active_drawing() -> dict[str, Any]:
 # ===========================================================================
 # Entry point
 # ===========================================================================
+
+@registered_tool()
+def get_electrical_connections(handle: str) -> dict[str, Any]:
+    """Read a component's real X?TERM connection points and terminal labels."""
+    from src.tools.native_electrical import get_connections
+    return get_connections(handle)
+
+
+@registered_tool()
+def connect_electrical_terminals(from_handle: str, from_connection: str,
+                                 to_handle: str, to_connection: str,
+                                 wire_layer: str = "MCP_WIRE") -> dict[str, Any]:
+    """Connect specific X?TERM attributes using Electrical native wire routing and netlist verification."""
+    from src.tools.native_electrical import connect_terminals
+    return connect_terminals(from_handle, from_connection, to_handle, to_connection, wire_layer)
+
+
+@registered_tool()
+def set_electrical_wire_number(wire_handle: str, number: str) -> dict[str, Any]:
+    """Set a normal wire number through Electrical and read it back from its native network."""
+    from src.tools.native_electrical import set_number
+    return set_number(wire_handle, number)
+
+
+@registered_tool()
+def get_electrical_wire(wire_handle: str) -> dict[str, Any]:
+    """Read native wire number, terminal network and line geometry without writing."""
+    from src.tools.native_electrical import inspect_wire
+    return inspect_wire(wire_handle)
+
+
+@registered_tool()
+def get_electrical_project() -> dict[str, Any]:
+    """Read active WDP and its exact drawing membership from Electrical."""
+    from src.tools.native_project import get_project
+    return get_project()
+
+
+@registered_tool()
+def update_electrical_signals(project_path: str) -> dict[str, Any]:
+    """Update CURRENT drawing's source/destination references and wire numbers.
+
+    Requires expected active WDP. Save all project drawings first; repeat on each
+    target drawing. Read back signal attributes and verify native From/To output.
+    """
+    from src.tools.native_project import update_signals
+    return update_signals(project_path)
+
+
+@registered_tool()
+def branch_electrical_terminal_to_wire(terminal_handle: str, connection_name: str,
+                                       wire_handle: str, x: float, y: float) -> dict[str, Any]:
+    """Add a straight aligned T branch from an unwired component pin to a wire.
+
+    The tap must lie on the selected segment. Verifies all three or more native
+    endpoints and inherited number. Already-connected calls do not draw again.
+    """
+    from src.tools.native_branch import branch
+    return branch(terminal_handle, connection_name, wire_handle, x, y)
+
+
+@registered_tool()
+def update_electrical_cross_references(project_path: str) -> dict[str, Any]:
+    """Update native parent/child references in a matching project.
+
+    All member drawings must be open and saved. Reject ambiguous INST/LOC/TAG
+    matches before writing. Returns both parent and child attributes, plus audit.
+    Exact reference positions and saved files still require independent checking.
+    """
+    from src.tools.native_cross_references import update
+    return update(project_path)
+
+
+@registered_tool()
+def export_electrical_project_report(project_path: str, report_type: str,
+                                     output_path: str) -> dict[str, Any]:
+    """Export native bom, components, from_to, terminal_plan or terminal_numbers CSV.
+
+    Save project drawings first. Requires matching active WDP/member drawing and
+    a new absolute CSV path. Returned native rows have no header; file creation
+    alone does not prove design correctness.
+    """
+    from src.tools.native_project import export_report
+    return export_report(project_path, report_type, output_path)
+
+
+@registered_tool()
+def get_tool_capabilities() -> dict[str, Any]:
+    """List all implemented tool statuses, default exposure, gaps and replacements."""
+    from src.tool_policy import catalogue
+    return {"success":True,"tools":catalogue()}
+
+
+@registered_tool()
+def add_aligned_dimension(drawing_path: str, x1: float, y1: float, x2: float, y2: float,
+                          text_x: float, text_y: float) -> dict[str, Any]:
+    """Create and read a native measured aligned dimension. Not associative to source geometry."""
+    from src.tools.dimensions import aligned
+    return aligned(drawing_path,x1,y1,x2,y2,text_x,text_y)
+
+
+@registered_tool()
+def add_diameter_dimension(drawing_path: str, circle_handle: str, leader_length: float = 8.0) -> dict[str, Any]:
+    """Create native diameter dimension from an XY circle. Source association is not maintained."""
+    from src.tools.dimensions import diameter
+    return diameter(drawing_path,circle_handle,leader_length)
+
+
+@registered_tool()
+def get_dimension_info(drawing_path: str, handle: str) -> dict[str, Any]:
+    """Read native dimension measurement, object type and text override."""
+    from src.tools.dimensions import inspect
+    return inspect(drawing_path,handle)
+
+
+@registered_tool()
+def export_electrical_project_pdf(project_path: str, output_path: str,
+                                  template_mode: str) -> dict[str, Any]:
+    """Export synthetic DIN A3 model-space test project to a new multipage PDF.
+
+    template_mode must be synthetic_din_a3, synthetic_zh_en_a3 or synthetic_trebi_a3. All project pages must be open/saved
+    and active project must match. Copies get NTS and test-only/page labels.
+    TREBI preserves logical PAGE/OF and validates native grid/navigation before plotting.
+    Requires optional pdf dependency. Uses fit-to-page monochrome A3, preserves
+    source DWGs, restores original active drawing on success. Returns structural
+    checks only; visual review is still required. No automatic retry on failure.
+    """
+    from src.tools.native_pdf import export_pdf
+    return export_pdf(project_path, output_path, template_mode)
+
+
+@registered_tool()
+def get_execution_diagnostics() -> dict[str, Any]:
+    """Read local operation receipts and interruption marker without contacting AutoCAD."""
+    from src.autocad.isolated import diagnose
+    return diagnose()
+
+
+@registered_tool()
+def plan_trebi_batch(spec: dict[str, Any]) -> dict[str, Any]:
+    """Plan bounded TREBI logical pages, inherited tags and exact references without CAD.
+
+    Does not scan existing drawings or select replacement catalog parts.
+    """
+    from src.tools.trebi_batch import plan
+    try:
+        return plan(spec)
+    except (ValueError, TypeError, KeyError, AttributeError) as exc:
+        return {"success": False, "status": "preflight_rejected", "submitted": False, "error": str(exc)}
+
+
+@registered_tool()
+def execute_trebi_batch(project_path: str, spec: dict[str, Any], drawing_path: str) -> dict[str, Any]:
+    """Execute verified IEC2 TREBI recipe on 1..8 prepared blank project pages.
+
+    All pages must be open/saved, WDT and LINE20 must match manifest. Applies
+    grid/title rules, inserts relay/NO contact/terminals/signal arrows, connects
+    horizontal wires, numbers, updates references, saves and exports reports.
+    Stops on first failure; partial writes are never rolled back or replayed.
+    Returns durable per-step receipt. Independent reopen/visual review required.
+    """
+    from src.tools.trebi_batch import execute
+    return execute(project_path, spec, drawing_path)
+
+
+@registered_tool()
+def plan_delta_r2_io(spec: dict[str, Any]) -> dict[str, Any]:
+    """Read-only R2-EC0902 family port/common/PDO-group draft with source pages.
+
+    Version 1 plans manual-based channels. Version 2 reads a hash-pinned local ESI,
+    matches supplied device observations, and keeps original signals, terminals,
+    potentials, wire numbers and explicit PLC addresses separate. Never contacts
+    hardware or CAD; drawing readiness remains false.
+    """
+    from src.tools.delta_io import plan
+    try:
+        return plan(spec)
+    except (ValueError, TypeError, KeyError, AttributeError) as exc:
+        return {"success":False,"status":"preflight_rejected","submitted":False,"cad_contacted":False,"error":str(exc)}
+
 
 def main() -> None:
     """Start the MCP server (stdio transport)."""
@@ -737,7 +913,7 @@ def main() -> None:
     logger.info("Active AI provider: %s", _cfg.get_active_provider())
 
     # Attempt AutoCAD connection at startup (non-fatal)
-    _attempt_autocad_connect()
+    # CAD connects only inside bounded workers, never on MCP startup.
 
     # Run the MCP server (blocks until the client disconnects)
     mcp.run()

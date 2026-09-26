@@ -1,0 +1,8 @@
+# 示例片段；需合并到 Codex 配置，不要覆盖已有配置。
+[mcp_servers.kinto_autocad]
+command = 'C:\kinto\Autocad-mcp\.venv\Scripts\python.exe'
+args = ["-m", "src.server"]
+cwd = 'C:\kinto\Autocad-mcp'
+startup_timeout_sec = 60
+tool_timeout_sec = 60
+enabled_tools = ["draw_line", "draw_circle", "draw_text", "draw_rectangle", "zoom_extents", "get_autocad_info", "insert_electrical_symbol", "get_symbol_list", "list_drawings", "get_active_drawing", "get_electrical_connections", "connect_electrical_terminals", "set_electrical_wire_number", "get_electrical_wire", "get_electrical_project", "update_electrical_signals", "export_electrical_project_report", "get_tool_capabilities", "add_aligned_dimension", "add_diameter_dimension", "get_dimension_info", "update_electrical_cross_references", "branch_electrical_terminal_to_wire", "export_electrical_project_pdf", "get_execution_diagnostics", "plan_trebi_batch", "execute_trebi_batch", "plan_delta_r2_io"]

@@ -1,0 +1,13 @@
+{
+  "mechanical": {
+    "title_profile": "titleblock-zh-en.json",
+    "status": "preserved_existing_template; mechanical_fixed_scale_not_accepted",
+    "dwt_template": "templates/KINTO-Mechanical-A3-ZH-EN.dwt"
+  },
+  "electrical": {
+    "title_profile": "trebi-electrical-a3.json",
+    "status": "native_xref_and_page_of_mapping_two_page_accepted; manifest_and_tag_planning_implemented; default_MCP_batch_two_page_accepted; prepared_blank_pages_only",
+    "dwt_template": "templates/KINTO-TREBI-Electrical-A3-ZH-EN.dwt"
+  },
+  "legacy_electrical_samples": "Existing DIN and bilingual fixtures remain regression evidence; not TREBI templates"
+}

@@ -1,0 +1,161 @@
+{
+  "block_name": "KINTO_TB_A3_ZH_EN",
+  "style_name": "KINTO_ZH_EN",
+  "font_file": "simhei.ttf",
+  "origin": [
+    222,
+    10,
+    0
+  ],
+  "width": 188,
+  "height": 55,
+  "fields": [
+    {
+      "tag": "PROJECT",
+      "label": "项目 / Project",
+      "label_xy": [
+        2,
+        51
+      ],
+      "value_xy": [
+        2,
+        43
+      ],
+      "height": 2.6,
+      "max_chars": 32
+    },
+    {
+      "tag": "TITLE",
+      "label": "图名 / Drawing title",
+      "label_xy": [
+        87,
+        51
+      ],
+      "value_xy": [
+        87,
+        43
+      ],
+      "height": 3,
+      "max_chars": 36
+    },
+    {
+      "tag": "DRAWING_NO",
+      "label": "图号 / Drawing No.",
+      "label_xy": [
+        2,
+        34
+      ],
+      "value_xy": [
+        2,
+        25
+      ],
+      "height": 3,
+      "max_chars": 32
+    },
+    {
+      "tag": "SHEET",
+      "label": "页码 / Sheet",
+      "label_xy": [
+        87,
+        34
+      ],
+      "value_xy": [
+        87,
+        25
+      ],
+      "height": 3,
+      "max_chars": 8
+    },
+    {
+      "tag": "REV",
+      "label": "版本 / Rev",
+      "label_xy": [
+        120,
+        34
+      ],
+      "value_xy": [
+        120,
+        25
+      ],
+      "height": 3,
+      "max_chars": 6
+    },
+    {
+      "tag": "SCALE",
+      "label": "比例 / Scale",
+      "label_xy": [
+        147,
+        34
+      ],
+      "value_xy": [
+        147,
+        25
+      ],
+      "height": 3,
+      "max_chars": 10
+    },
+    {
+      "tag": "DRAWN_BY",
+      "label": "绘图 / Drawn by",
+      "label_xy": [
+        2,
+        15
+      ],
+      "value_xy": [
+        2,
+        5
+      ],
+      "height": 2.8,
+      "max_chars": 18
+    },
+    {
+      "tag": "CHECKED_BY",
+      "label": "审核 / Checked",
+      "label_xy": [
+        52,
+        15
+      ],
+      "value_xy": [
+        52,
+        5
+      ],
+      "height": 2.8,
+      "max_chars": 18
+    },
+    {
+      "tag": "DATE",
+      "label": "日期 / Date",
+      "label_xy": [
+        102,
+        15
+      ],
+      "value_xy": [
+        102,
+        5
+      ],
+      "height": 2.8,
+      "max_chars": 12
+    },
+    {
+      "tag": "STATUS",
+      "label": "状态 / Status",
+      "label_xy": [
+        147,
+        15
+      ],
+      "value_xy": [
+        147,
+        5
+      ],
+      "height": 2.8,
+      "max_chars": 16
+    }
+  ],
+  "mapping_mode": "explicit_attributes_only",
+  "scope": "Synthetic A3 test template; not a construction approval or automatic WD_TB mapping",
+  "font_family": "SimHei",
+  "font_family_names": [
+    "SimHei",
+    "黑体"
+  ]
+}

@@ -1,0 +1,27 @@
+# 设计规格草案；src.server 当前不会读取本文件。
+schema_version: 1
+profile_id: autocad-electrical-2026
+status: draft_not_runtime_enforced
+target:
+  platform: windows
+  product: AutoCAD Electrical
+  release: "2026"
+  install_path_hint: 'C:\Program Files\Autodesk\AutoCAD 2026'
+  com_progid: null  # 首轮连接验证后记录，不猜测版本 ProgID
+drawing:
+  units: mm
+  symbol_standard: IEC
+  symbol_library_paths: []  # 从本机实际工程配置读取
+  template_path: null
+  project_path: null
+  language: zh-CN
+execution_plan:
+  serialize_com_and_ui: true
+  bind_target_document: true
+  verify_after_write: true
+  on_timeout: inspect_before_retry
+validation:
+  runtime_version: null
+  electrical_loaded: null
+  checked_at: null
+  evidence: null

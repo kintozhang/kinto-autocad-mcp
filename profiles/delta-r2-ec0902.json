@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "family": "R2-EC0902",
+  "source": {
+    "file": "DELTA_IA-GMC_R2-EC_MdM_TC_20240830.pdf",
+    "sha256": "8ba3c544c6f77b35105219f9bd047bae0f313d7b4ef6480d1180a3f8d0df8f09",
+    "revision": "Aug 2024 V3.0",
+    "pdf_pages": {
+      "specification": 31,
+      "port0": 35,
+      "port1": 36,
+      "port2": 37,
+      "port3": 38,
+      "power": 39,
+      "pdo": 107,
+      "objects": 113
+    },
+    "printed_pages": {
+      "specification": "2-20",
+      "ports": "2-24..2-28",
+      "pdo": "5-30",
+      "objects": "5-36"
+    }
+  },
+  "ports": [
+    {
+      "port": 0,
+      "connector": "TB2",
+      "direction": "input",
+      "prefix": "X",
+      "count": 16,
+      "object_index": "0x6000",
+      "first_subindex": 1,
+      "input_common": "TB3:S/S"
+    },
+    {
+      "port": 1,
+      "connector": "TB3",
+      "direction": "input",
+      "prefix": "X",
+      "count": 16,
+      "object_index": "0x6000",
+      "first_subindex": 3,
+      "input_common": "TB3:S/S"
+    },
+    {
+      "port": 2,
+      "connector": "TB4",
+      "direction": "output",
+      "prefix": "Y",
+      "count": 16,
+      "object_index": "0x6200",
+      "first_subindex": 1,
+      "first_common": 0,
+      "output_type": "relay_no_dry_contact"
+    },
+    {
+      "port": 3,
+      "connector": "TB5",
+      "direction": "output",
+      "prefix": "Y",
+      "count": 16,
+      "object_index": "0x6200",
+      "first_subindex": 3,
+      "first_common": 4,
+      "output_type": "relay_no_dry_contact"
+    }
+  ],
+  "limitations": [
+    "D0 ordering suffix not confirmed by this manual",
+    "Exact 0902 ESI and NC50 station/global address mapping still required",
+    "Byte-internal bit positions are derived draft candidates, not online-verified",
+    "No native PLC symbol or CAD write provided by this planner"
+  ]
+}

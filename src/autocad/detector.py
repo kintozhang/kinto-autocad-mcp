@@ -152,7 +152,7 @@ _FEATURES_ELECTRICAL = _FEATURES_STANDARD + [
 # Core detection
 # ---------------------------------------------------------------------------
 
-def detect(force: bool = False) -> AutoCADInfo:
+def detect(force: bool = False, *, allow_com: bool = True) -> AutoCADInfo:
     """Detect the installed and/or running AutoCAD variant.
 
     Results are cached after the first call. Pass ``force=True`` to re-run.
@@ -163,13 +163,13 @@ def detect(force: bool = False) -> AutoCADInfo:
         Detection result with variant, version, features, and running state.
     """
     if not force:
-        return _cached_detect()
+        return _cached_detect(allow_com)
     _cached_detect.cache_clear()
-    return _cached_detect()
+    return _cached_detect(allow_com)
 
 
 @lru_cache(maxsize=1)
-def _cached_detect() -> AutoCADInfo:
+def _cached_detect(allow_com=True) -> AutoCADInfo:
     """Internal cached implementation of :func:`detect`."""
     if sys.platform != "win32":
         logger.info(
@@ -201,7 +201,7 @@ def _cached_detect() -> AutoCADInfo:
         _detect_via_filesystem(info)
 
     # ── Step 4: COM query (only if process is running) ──────────────────────
-    if info.running and info.variant in ("none", "unknown"):
+    if allow_com and info.running and info.variant in ("none", "unknown"):
         try:
             _detect_via_com(info)
         except Exception as exc:

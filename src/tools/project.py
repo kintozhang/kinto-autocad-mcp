@@ -245,7 +245,7 @@ def sync_project() -> dict[str, Any]:
         conn = _get_conn()
         conn.send_command("WDSYNCH\n\n")
         return {
-            "success": True,
+            "success": False, "status": "submitted_unverified",
             "message": "WDSYNCH project synchronisation command sent.",
         }
     except AutoCADConnectionError as exc:

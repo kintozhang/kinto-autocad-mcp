@@ -8,7 +8,7 @@ version = "1.0.0"
 description = "MCP Server for AutoCAD Electrical 2025"
 requires-python = ">=3.11"
 dependencies = [
-    "mcp>=1.0.0",
+    "mcp>=1.28,<2",
     "pywin32>=306",
     "pyautocad>=0.2.0",
     "pyyaml>=6.0",
@@ -22,6 +22,10 @@ dependencies = [
     "fastapi>=0.110.0",
     "uvicorn[standard]>=0.29.0",
 ]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<9"]
+pdf = ["pypdf>=6.10,<7"]
 
 [project.scripts]
 autocad-mcp = "src.server:main"

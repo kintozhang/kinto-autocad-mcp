@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "kinto_autocad": {
+      "command": "C:\\kinto\\Autocad-mcp\\.venv\\Scripts\\autocad-mcp.exe",
+      "args": []
+    }
+  }
+}

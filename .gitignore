@@ -90,3 +90,15 @@ models/
 [Dd]esktop.ini
 $RECYCLE.BIN/
 *.lnk
+
+# Kinto local engineering data and validation output
+work/
+*.local.yaml
+*.local.toml
+.codex/config.toml
+
+# Generated local PDF acceptance artifacts
+output/pdf/
+
+# Local Codex configuration backups
+.codex/config.toml.*

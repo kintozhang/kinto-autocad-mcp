@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "source": "User-confirmed TREBI numbering convention; ranges are configurable, not inferred from PDF page positions",
+  "groups": [
+    {
+      "id": "overview_power",
+      "label": "总览、供电",
+      "first": 0,
+      "last": 14
+    },
+    {
+      "id": "distribution_drives",
+      "label": "24V分配、驱动系统",
+      "first": 50,
+      "last": 63
+    },
+    {
+      "id": "field_functions",
+      "label": "现场功能回路",
+      "first": 100,
+      "last": 123
+    },
+    {
+      "id": "main_cabinet_io",
+      "label": "主电柜、远程I/O",
+      "first": 300,
+      "last": 329
+    },
+    {
+      "id": "other_cabinets",
+      "label": "其他柜体或功能组",
+      "first": 400,
+      "last": 421
+    },
+    {
+      "id": "operator_station",
+      "label": "操作台相关部分",
+      "first": 500,
+      "last": 500
+    }
+  ]
+}

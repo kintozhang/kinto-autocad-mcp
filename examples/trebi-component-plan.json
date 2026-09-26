@@ -1,0 +1,27 @@
+[
+  {
+    "id": "safety-unlock-relay",
+    "role": "primary",
+    "family": "K",
+    "drawing_page": "112",
+    "owner_page": "112"
+  },
+  {
+    "id": "remote-contact",
+    "role": "child",
+    "drawing_page": "54",
+    "parent_id": "safety-unlock-relay"
+  },
+  {
+    "id": "terminal-strip",
+    "role": "independent",
+    "drawing_page": "54",
+    "existing_tag": "-X15"
+  },
+  {
+    "id": "field-cable",
+    "role": "independent",
+    "drawing_page": "112",
+    "existing_tag": "-W102-1"
+  }
+]

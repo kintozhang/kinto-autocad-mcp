@@ -1,0 +1,418 @@
+{
+  "schema_version": 1,
+  "profile_id": "trebi-electrical-a3",
+  "block_name": "KINTO_TREBI_ELECTRICAL_A3",
+  "discipline": "electrical",
+  "paper_mm": [
+    420,
+    297
+  ],
+  "drawing_frame": [
+    10,
+    10,
+    410,
+    289
+  ],
+  "title_bounds": [
+    10,
+    10,
+    410,
+    40
+  ],
+  "header_bounds": [
+    10,
+    283,
+    410,
+    289
+  ],
+  "zones": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "xref_format": "logical_page.zone",
+  "source_layout": "16601-01-rev3; logical PAGE 102 / PDF page 31 visually verified",
+  "geometry_status": "normalized_from_reference_not_exact_original_CAD_measurements",
+  "native_xref_status": "accepted_two_page_synthetic_54_112_zones_2_5_8",
+  "style_name": "KINTO_ZH_EN",
+  "font_file": "simhei.ttf",
+  "fields": [
+    {
+      "tag": "REV",
+      "label": "修订 / Revision",
+      "label_xy": [
+        12,
+        36
+      ],
+      "value_xy": [
+        12,
+        29
+      ],
+      "height": 2.4,
+      "max_chars": 12
+    },
+    {
+      "tag": "CHANGES",
+      "label": "变更 / Changes",
+      "label_xy": [
+        63,
+        36
+      ],
+      "value_xy": [
+        63,
+        29
+      ],
+      "height": 2.2,
+      "max_chars": 24
+    },
+    {
+      "tag": "REV_DATE",
+      "label": "日期 / Date",
+      "label_xy": [
+        12,
+        21
+      ],
+      "value_xy": [
+        12,
+        14
+      ],
+      "height": 2.2,
+      "max_chars": 12
+    },
+    {
+      "tag": "SIGNATURE",
+      "label": "签署 / Signature",
+      "label_xy": [
+        63,
+        21
+      ],
+      "value_xy": [
+        63,
+        14
+      ],
+      "height": 2.2,
+      "max_chars": 20
+    },
+    {
+      "tag": "BRAND",
+      "label": "项目标识 / Project identity",
+      "label_xy": [
+        116,
+        36
+      ],
+      "value_xy": [
+        124,
+        22
+      ],
+      "height": 5,
+      "max_chars": 26
+    },
+    {
+      "tag": "PLAN",
+      "label": "图号 / Plan",
+      "label_xy": [
+        262,
+        36
+      ],
+      "value_xy": [
+        292,
+        36
+      ],
+      "height": 2.2,
+      "max_chars": 38
+    },
+    {
+      "tag": "ORDER",
+      "label": "订单 / Order",
+      "label_xy": [
+        262,
+        30.5
+      ],
+      "value_xy": [
+        292,
+        30.5
+      ],
+      "height": 2.2,
+      "max_chars": 38
+    },
+    {
+      "tag": "CUSTOMER",
+      "label": "客户 / Customer",
+      "label_xy": [
+        262,
+        25.5
+      ],
+      "value_xy": [
+        292,
+        25.5
+      ],
+      "height": 2.2,
+      "max_chars": 38
+    },
+    {
+      "tag": "DESCRIPTION",
+      "label": "图名 / Description",
+      "label_xy": [
+        262,
+        20.5
+      ],
+      "value_xy": [
+        262,
+        15.5
+      ],
+      "height": 2.2,
+      "max_chars": 55
+    },
+    {
+      "tag": "PLANNER",
+      "label": "设计 / Planner",
+      "label_xy": [
+        262,
+        11.5
+      ],
+      "value_xy": [
+        290,
+        11.5
+      ],
+      "height": 1.9,
+      "max_chars": 16
+    },
+    {
+      "tag": "DATE",
+      "label": "日期 / Date",
+      "label_xy": [
+        333,
+        11.5
+      ],
+      "value_xy": [
+        352,
+        11.5
+      ],
+      "height": 1.9,
+      "max_chars": 12
+    },
+    {
+      "tag": "PAGE",
+      "label": "PAGE",
+      "label_xy": [
+        387,
+        35.5
+      ],
+      "value_xy": [
+        400,
+        35
+      ],
+      "height": 3,
+      "max_chars": 6
+    },
+    {
+      "tag": "OF",
+      "label": "OF",
+      "label_xy": [
+        387,
+        27.5
+      ],
+      "value_xy": [
+        400,
+        27
+      ],
+      "height": 3,
+      "max_chars": 6
+    },
+    {
+      "tag": "PREV",
+      "label": "前页 Prev",
+      "label_xy": [
+        387,
+        20
+      ],
+      "value_xy": [
+        387,
+        12
+      ],
+      "height": 2.6,
+      "max_chars": 6,
+      "label_height": 1.4
+    },
+    {
+      "tag": "NEXT",
+      "label": "后页 Next",
+      "label_xy": [
+        399,
+        20
+      ],
+      "value_xy": [
+        401,
+        12
+      ],
+      "height": 2.6,
+      "max_chars": 6,
+      "label_height": 1.4
+    }
+  ],
+  "lines": [
+    [
+      10,
+      10,
+      410,
+      10
+    ],
+    [
+      410,
+      10,
+      410,
+      289
+    ],
+    [
+      410,
+      289,
+      10,
+      289
+    ],
+    [
+      10,
+      289,
+      10,
+      10
+    ],
+    [
+      10,
+      40,
+      410,
+      40
+    ],
+    [
+      10,
+      283,
+      410,
+      283
+    ],
+    [
+      61,
+      10,
+      61,
+      40
+    ],
+    [
+      112,
+      10,
+      112,
+      40
+    ],
+    [
+      260,
+      10,
+      260,
+      40
+    ],
+    [
+      385,
+      10,
+      385,
+      40
+    ],
+    [
+      10,
+      25,
+      112,
+      25
+    ],
+    [
+      260,
+      34,
+      385,
+      34
+    ],
+    [
+      260,
+      29,
+      385,
+      29
+    ],
+    [
+      260,
+      24,
+      385,
+      24
+    ],
+    [
+      260,
+      14,
+      385,
+      14
+    ],
+    [
+      331,
+      10,
+      331,
+      14
+    ],
+    [
+      385,
+      24,
+      410,
+      24
+    ],
+    [
+      50,
+      283,
+      50,
+      289
+    ],
+    [
+      90,
+      283,
+      90,
+      289
+    ],
+    [
+      130,
+      283,
+      130,
+      289
+    ],
+    [
+      170,
+      283,
+      170,
+      289
+    ],
+    [
+      210,
+      283,
+      210,
+      289
+    ],
+    [
+      250,
+      283,
+      250,
+      289
+    ],
+    [
+      290,
+      283,
+      290,
+      289
+    ],
+    [
+      330,
+      283,
+      330,
+      289
+    ],
+    [
+      370,
+      283,
+      370,
+      289
+    ]
+  ]
+}

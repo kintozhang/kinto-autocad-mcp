@@ -206,51 +206,8 @@ def update_component(
 
 
 def delete_component(tag1: str) -> dict[str, Any]:
-    """Remove the component identified by TAG1 from the drawing.
-
-    Parameters
-    ----------
-    tag1 : str
-        TAG1 of the component to delete.
-
-    Returns
-    -------
-    dict
-        Success/error dict.
-    """
-    try:
-        conn = _get_conn()
-        doc = conn.get_active_document()
-        ms = conn.get_model_space()
-
-        for i in range(ms.Count):
-            try:
-                obj = ms.Item(i)
-                if obj.ObjectName != "AcDbBlockReference":
-                    continue
-                attrs = get_block_attributes(obj)
-                if attrs.get("TAG1", "").upper() == tag1.upper():
-                    handle = obj.Handle
-                    obj.Delete()
-                    doc.Regen(1)
-                    return {
-                        "success": True,
-                        "tag1": tag1,
-                        "handle": handle,
-                        "message": f"Component '{tag1}' deleted.",
-                    }
-            except Exception:
-                continue
-
-        return {
-            "success": False,
-            "error": f"Component '{tag1}' not found.",
-        }
-    except AutoCADConnectionError as exc:
-        return {"success": False, "error": str(exc)}
-    except Exception as exc:
-        logger.exception("delete_component failed")
-        return {"success": False, "error": str(exc)}
+    """Disabled legacy operation; no CAD writes are performed."""
+    return {"success": False, "status": "disabled", "error": 'Native wire repair/delete has not been implemented'}
 
 
 def move_component(
@@ -258,54 +215,8 @@ def move_component(
     new_x: float,
     new_y: float,
 ) -> dict[str, Any]:
-    """Move the component identified by TAG1 to a new location.
-
-    Parameters
-    ----------
-    tag1 : str
-        TAG1 of the component to move.
-    new_x, new_y : float
-        New insertion point coordinates.
-
-    Returns
-    -------
-    dict
-        Success/error dict with old and new positions.
-    """
-    try:
-        conn = _get_conn()
-        doc = conn.get_active_document()
-        ms = conn.get_model_space()
-
-        for i in range(ms.Count):
-            try:
-                obj = ms.Item(i)
-                if obj.ObjectName != "AcDbBlockReference":
-                    continue
-                attrs = get_block_attributes(obj)
-                if attrs.get("TAG1", "").upper() == tag1.upper():
-                    old_pt = list(obj.InsertionPoint)
-                    obj.InsertionPoint = point3d(new_x, new_y)
-                    obj.Update()
-                    return {
-                        "success": True,
-                        "tag1": tag1,
-                        "old_position": [round(old_pt[0], 4), round(old_pt[1], 4)],
-                        "new_position": [new_x, new_y],
-                        "handle": obj.Handle,
-                    }
-            except Exception:
-                continue
-
-        return {
-            "success": False,
-            "error": f"Component '{tag1}' not found.",
-        }
-    except AutoCADConnectionError as exc:
-        return {"success": False, "error": str(exc)}
-    except Exception as exc:
-        logger.exception("move_component failed")
-        return {"success": False, "error": str(exc)}
+    """Disabled legacy operation; no CAD writes are performed."""
+    return {"success": False, "status": "disabled", "error": 'Native wire-follow move has not been implemented'}
 
 
 def search_components(

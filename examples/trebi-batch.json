@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "manifest": {
+    "schema_version": 1,
+    "entries": [
+      {
+        "id": "54",
+        "kind": "drawing",
+        "logical_page": "54",
+        "include_in_total": true,
+        "drawing_file": "demo-54.dwg"
+      },
+      {
+        "id": "112",
+        "kind": "drawing",
+        "logical_page": "112",
+        "include_in_total": true,
+        "drawing_file": "demo-112.dwg"
+      }
+    ]
+  },
+  "components": [
+    {
+      "id": "parent",
+      "role": "primary",
+      "family": "K",
+      "owner_page": "112",
+      "drawing_page": "112",
+      "x": 350,
+      "y": 150,
+      "attributes": {
+        "MFG": "KINTO_TEST",
+        "CAT": "RELAY_DEMO",
+        "DESC1": "UNWIRED REFERENCE TEST"
+      }
+    },
+    {
+      "id": "child",
+      "role": "child",
+      "parent_id": "parent",
+      "drawing_page": "54",
+      "x": 230,
+      "y": 150,
+      "attributes": {
+        "DESC1": "UNWIRED REFERENCE TEST"
+      }
+    },
+    {
+      "id": "destination",
+      "role": "destination",
+      "signal_code": "KINTO_TREBI_XZONE_TEST",
+      "drawing_page": "112",
+      "x": 330,
+      "y": 210
+    },
+    {
+      "id": "terminal112",
+      "role": "terminal",
+      "strip": "X112",
+      "pin": "1",
+      "drawing_page": "112",
+      "x": 390,
+      "y": 210,
+      "attributes": {
+        "MFG": "KINTO_TEST",
+        "CAT": "TERMINAL_DEMO"
+      }
+    },
+    {
+      "id": "terminal54",
+      "role": "terminal",
+      "strip": "X54",
+      "pin": "1",
+      "drawing_page": "54",
+      "x": 70,
+      "y": 210,
+      "attributes": {
+        "MFG": "KINTO_TEST",
+        "CAT": "TERMINAL_DEMO"
+      }
+    },
+    {
+      "id": "source",
+      "role": "source",
+      "signal_code": "KINTO_TREBI_XZONE_TEST",
+      "drawing_page": "54",
+      "x": 110,
+      "y": 210
+    }
+  ],
+  "connections": [
+    {
+      "id": "destination_wire",
+      "from_id": "destination",
+      "from_connection": "X1TERM01",
+      "to_id": "terminal112",
+      "to_connection": "X4TERM01"
+    },
+    {
+      "id": "source_wire",
+      "from_id": "terminal54",
+      "from_connection": "X1TERM01",
+      "to_id": "source",
+      "to_connection": "X4TERM01",
+      "wire_number": "501"
+    }
+  ]
+}

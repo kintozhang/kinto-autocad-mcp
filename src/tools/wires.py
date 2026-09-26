@@ -126,7 +126,7 @@ def number_wires(
             cmd = "WDANNO\nD\n\n"
         conn.send_command(cmd)
         return {
-            "success": True,
+            "success": False, "status": "submitted_unverified",
             "scope": "project" if project else "drawing",
             "sheet": sheet,
         }
@@ -262,79 +262,5 @@ def create_wire_from_to(
     from_component: str,
     to_component: str,
 ) -> dict[str, Any]:
-    """Route a wire between two components identified by TAG1.
-
-    Locates both components in ModelSpace, identifies their nearest connection
-    terminals (insertion points), and draws a wire line between them.
-
-    Parameters
-    ----------
-    from_component : str
-        TAG1 of the source component.
-    to_component : str
-        TAG1 of the destination component.
-
-    Returns
-    -------
-    dict
-        Success/error dict with wire handle and endpoint coordinates.
-    """
-    try:
-        conn = _get_conn()
-        doc = conn.get_active_document()
-        ms = conn.get_model_space()
-
-        def _find_component(tag: str):
-            for i in range(ms.Count):
-                try:
-                    obj = ms.Item(i)
-                    if obj.ObjectName != "AcDbBlockReference":
-                        continue
-                    attrs = get_block_attributes(obj)
-                    if attrs.get("TAG1", "").upper() == tag.upper():
-                        return obj
-                except Exception:
-                    continue
-            return None
-
-        from_obj = _find_component(from_component)
-        to_obj = _find_component(to_component)
-
-        if from_obj is None:
-            return {
-                "success": False,
-                "error": f"Component '{from_component}' not found.",
-            }
-        if to_obj is None:
-            return {
-                "success": False,
-                "error": f"Component '{to_component}' not found.",
-            }
-
-        # Use insertion points as connection points
-        from_pt = from_obj.InsertionPoint
-        to_pt = to_obj.InsertionPoint
-
-        # Draw the wire
-        ensure_layer(doc, _DEFAULT_WIRE_LAYER, color=2)
-        line = ms.AddLine(
-            point3d(from_pt[0], from_pt[1]),
-            point3d(to_pt[0], to_pt[1]),
-        )
-        line.Layer = _DEFAULT_WIRE_LAYER
-        handle = line.Handle
-
-        return {
-            "success": True,
-            "wire_handle": handle,
-            "from_component": from_component,
-            "from_point": [round(from_pt[0], 4), round(from_pt[1], 4)],
-            "to_component": to_component,
-            "to_point": [round(to_pt[0], 4), round(to_pt[1], 4)],
-            "layer": _DEFAULT_WIRE_LAYER,
-        }
-    except AutoCADConnectionError as exc:
-        return {"success": False, "error": str(exc)}
-    except Exception as exc:
-        logger.exception("create_wire_from_to failed")
-        return {"success": False, "error": str(exc)}
+    """Disabled legacy operation; no CAD writes are performed."""
+    return {"success": False, "status": "disabled", "error": 'connect_electrical_terminals with explicit handles and X?TERMnn'}

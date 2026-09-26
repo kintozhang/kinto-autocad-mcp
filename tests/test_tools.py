@@ -217,45 +217,46 @@ class TestDrawingTools:
 # ===========================================================================
 
 class TestElectricalTools:
-    def test_get_symbol_list_all(self):
+    def test_get_symbol_list_all(self, tmp_path, monkeypatch):
         from src.tools.electrical import get_symbol_list
-        result = get_symbol_list()
-        assert result["success"] is True
-        assert result["count"] > 0
-        assert "WD_NOPEN" in result["symbols"]
+        monkeypatch.setenv("KINTO_SYMBOL_LIBRARY",str(tmp_path))
+        (tmp_path/"HCR1.dwg").touch()
+        result=get_symbol_list()
+        assert result["success"] and result["symbols"]==["HCR1"]
+        assert result["items"][0]["live_sample_verified"] is False
 
-    def test_get_symbol_list_filtered(self):
+    def test_get_symbol_list_filtered(self, tmp_path, monkeypatch):
         from src.tools.electrical import get_symbol_list
-        result = get_symbol_list("coils")
-        assert result["success"] is True
-        assert all("COIL" in s or "WD_" in s for s in result["symbols"])
+        monkeypatch.setenv("KINTO_SYMBOL_LIBRARY",str(tmp_path))
+        (tmp_path/"HCR1.dwg").touch();(tmp_path/"HT0001.dwg").touch()
+        assert get_symbol_list("coils")["symbols"]==["HCR1"]
 
-    def test_get_symbol_list_unknown_category(self):
+    def test_get_symbol_list_unknown_category(self, tmp_path, monkeypatch):
         from src.tools.electrical import get_symbol_list
-        result = get_symbol_list("unknown_xyz")
-        assert result["success"] is True
-        assert result["count"] == 0  # no match → empty list
+        monkeypatch.setenv("KINTO_SYMBOL_LIBRARY",str(tmp_path))
+        assert get_symbol_list("unknown_xyz")["count"]==0
 
-    def test_insert_electrical_symbol_sends_lisp(self, mock_conn):
+    def test_insert_electrical_symbol_uses_native_adapter(self, mock_conn):
+        from unittest.mock import patch
         from src.tools.electrical import insert_electrical_symbol
-        result = insert_electrical_symbol("WD_NOPEN", 100, 200)
-        # COM send_command should have been called
-        assert mock_conn.send_command.called
-        # Result is either success (if mock block found) or partial success
-        assert "success" in result
+        with patch("src.tools.native_electrical.insert_symbol", return_value={"success": False}) as native:
+            assert insert_electrical_symbol("HCR1", 100, 200) == {"success": False}
+        native.assert_called_once_with("HCR1", 100, 200, 0.0, None)
 
     def test_insert_ladder_sends_command(self, mock_conn):
         from src.tools.electrical import insert_ladder
         result = insert_ladder(0, 0, rung_count=5)
         assert mock_conn.send_command.called
-        assert result["success"] is True
+        assert result["success"] is False
+        assert result["status"] == "submitted_unverified"
         assert result["rung_count"] == 5
 
     def test_set_wire_number_sends_command(self, mock_conn):
         from src.tools.electrical import set_wire_number
         result = set_wire_number("101", 50, 100)
         assert mock_conn.send_command.called
-        assert result["success"] is True
+        assert result["success"] is False
+        assert result["status"] == "submitted_unverified"
         assert result["wire_number"] == "101"
 
     def test_edit_component_attributes_not_found(self, mock_ms):
@@ -287,13 +288,15 @@ class TestWireTools:
         from src.tools.wires import number_wires
         result = number_wires()
         assert mock_conn.send_command.called
-        assert result["success"] is True
+        assert result["success"] is False
+        assert result["status"] == "submitted_unverified"
         assert result["scope"] == "drawing"
 
     def test_number_wires_project_scope(self, mock_conn):
         from src.tools.wires import number_wires
         result = number_wires(project="MyProject")
-        assert result["success"] is True
+        assert result["success"] is False
+        assert result["status"] == "submitted_unverified"
         assert result["scope"] == "project"
 
     def test_get_wire_numbers_empty_drawing(self, mock_ms):
@@ -309,7 +312,7 @@ class TestWireTools:
         mock_ms.Count = 0
         result = create_wire_from_to("CR101", "M1")
         assert result["success"] is False
-        assert "not found" in result["error"].lower()
+        assert result["status"] == "disabled"
 
 
 # ===========================================================================
@@ -425,7 +428,8 @@ class TestProjectTools:
         from src.tools.project import sync_project
         result = sync_project()
         assert mock_conn.send_command.called
-        assert result["success"] is True
+        assert result["success"] is False
+        assert result["status"] == "submitted_unverified"
 
     def test_close_drawing_saves(self, mock_conn, mock_doc):
         from src.tools.project import close_drawing

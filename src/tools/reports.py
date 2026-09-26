@@ -114,7 +114,7 @@ def generate_bom(
             cmd = f"WDREPORT\nBOM\n\n"
             conn.send_command(cmd)
             return {
-                "success": True,
+                "success": False, "status": "submitted_unverified",
                 "report_type": "BOM",
                 "method": "WDREPORT",
                 "note": "WDREPORT command sent to AutoCAD Electrical.",

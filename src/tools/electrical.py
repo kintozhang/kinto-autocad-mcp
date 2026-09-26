@@ -3,10 +3,8 @@
 Provides MCP tools for electrical symbols, ladder diagrams, PLC modules,
 cross-references, wire number tags, and component attributes.
 
-AutoCAD Electrical 2025 commands are sent as AutoLISP expressions via
-``SendCommand`` so that the Electrical-specific routines (WDLADDER, WDANNO,
-acet-insert-block, etc.) are available without requiring the COM automation
-API extensions.
+Symbol insertion delegates to the verified native Electrical 2026 adapter.
+Other legacy command wrappers remain experimental; see docs/capabilities.md.
 """
 
 from __future__ import annotations
@@ -43,98 +41,11 @@ def _run_lisp(conn, expr: str) -> None:
 # MCP Tool functions
 # ---------------------------------------------------------------------------
 
-def insert_electrical_symbol(
-    symbol_name: str,
-    x: float,
-    y: float,
-    rotation: float = 0.0,
-    attributes: dict[str, str] | None = None,
-) -> dict[str, Any]:
-    """Insert an AutoCAD Electrical symbol from the WD symbol library.
-
-    The symbol is inserted using the Electrical-specific LISP function
-    ``acet-insert-block``.  After insertion the provided *attributes* are
-    applied via EATTEDIT-compatible attribute editing.
-
-    Parameters
-    ----------
-    symbol_name : str
-        Symbol block name as it appears in the WD symbol library
-        (e.g. ``"WD_NOPEN"`` for a normally-open contact).
-    x, y : float
-        Insertion point coordinates.
-    rotation : float
-        Rotation angle in degrees (default 0).
-    attributes : dict[str, str] or None
-        Optional mapping of attribute tag to value
-        (e.g. ``{"TAG1": "101CR", "DESC1": "Motor Contactor"}``).
-
-    Returns
-    -------
-    dict
-        Success/error dict with the inserted block's handle.
-    """
-    if attributes is None:
-        attributes = {}
-    try:
-        conn = _get_conn()
-        import math
-        rot_rad = math.radians(rotation)
-
-        # Use acet-insert-block for Electrical-aware symbol insertion
-        lisp = (
-            f'(acet-insert-block "{symbol_name}" '
-            f'(list {x} {y} 0) '
-            f'1.0 1.0 {rot_rad} '
-            f'"" "")'
-        )
-        _run_lisp(conn, lisp)
-
-        # Apply attributes if supplied
-        if attributes:
-            doc = conn.get_active_document()
-            ms = conn.get_model_space()
-            # Find the most-recently inserted block matching symbol_name
-            target_block = None
-            for i in range(ms.Count - 1, -1, -1):
-                try:
-                    obj = ms.Item(i)
-                    if (
-                        obj.ObjectName == "AcDbBlockReference"
-                        and obj.Name.upper() == symbol_name.upper()
-                    ):
-                        target_block = obj
-                        break
-                except Exception:
-                    continue
-
-            if target_block is not None:
-                updated = set_block_attributes(target_block, attributes)
-                logger.debug(
-                    "insert_electrical_symbol: set %d attribute(s) on '%s'",
-                    updated,
-                    symbol_name,
-                )
-                return {
-                    "success": True,
-                    "symbol": symbol_name,
-                    "insertion_point": [x, y],
-                    "rotation": rotation,
-                    "handle": target_block.Handle,
-                    "attributes_set": updated,
-                }
-
-        return {
-            "success": True,
-            "symbol": symbol_name,
-            "insertion_point": [x, y],
-            "rotation": rotation,
-        }
-    except AutoCADConnectionError as exc:
-        return {"success": False, "error": str(exc)}
-    except Exception as exc:
-        logger.exception("insert_electrical_symbol failed")
-        return {"success": False, "error": str(exc)}
+def insert_electrical_symbol(symbol_name: str, x: float, y: float, rotation: float = 0.0,
+                             attributes: dict[str, str] | None = None) -> dict[str, Any]:
+    """Insert via the documented Electrical 2026 API and verify its returned handle."""
+    from src.tools.native_electrical import insert_symbol
+    return insert_symbol(symbol_name, x, y, rotation, attributes)
 
 
 def insert_ladder(
@@ -185,7 +96,7 @@ def insert_ladder(
         )
         conn.send_command(cmd)
         return {
-            "success": True,
+            "success": False, "status": "submitted_unverified",
             "start": [x_start, y_start],
             "rung_spacing": rung_spacing,
             "rung_count": rung_count,
@@ -199,87 +110,11 @@ def insert_ladder(
         return {"success": False, "error": str(exc)}
 
 
-def get_symbol_list(category: str = "") -> dict[str, Any]:
-    """Return a list of known AutoCAD Electrical symbol names.
-
-    This function returns a curated catalogue of common WD symbol names.  A
-    full dynamic list would require parsing the symbol library path configured
-    in the project, which is file-system dependent.
-
-    Parameters
-    ----------
-    category : str
-        Optional filter: ``"contacts"``, ``"coils"``, ``"plc"``,
-        ``"terminals"``, ``"transformers"``, or ``""`` for all.
-
-    Returns
-    -------
-    dict
-        ``{"success": True, "symbols": [...], "count": N}``
-    """
-    _SYMBOLS: dict[str, list[str]] = {
-        "contacts": [
-            "WD_NOPEN",    # Normally open contact
-            "WD_NCLOSE",   # Normally closed contact
-            "WD_NOENA",    # NO contact, push-button
-            "WD_NCENA",    # NC contact, push-button
-            "WD_TCON",     # Time delay contact (on-delay)
-            "WD_TCOFF",    # Time delay contact (off-delay)
-        ],
-        "coils": [
-            "WD_COIL",     # Standard coil / relay coil
-            "WD_LATCH",    # Latching coil
-            "WD_UNLATCH",  # Unlatching coil
-            "WD_SOLENOID", # Solenoid coil
-            "WD_MOTOR",    # Motor symbol
-        ],
-        "plc": [
-            "WD_PLC_IN",   # PLC input module
-            "WD_PLC_OUT",  # PLC output module
-            "WD_PLC_AI",   # PLC analog input
-            "WD_PLC_AO",   # PLC analog output
-        ],
-        "terminals": [
-            "WD_TERM",     # Single terminal
-            "WD_GROUND",   # Earth/ground
-            "WD_CHASSIS",  # Chassis ground
-            "WD_COM",      # Common terminal
-        ],
-        "transformers": [
-            "WD_XFMR1",    # Single-phase transformer
-            "WD_XFMR3",    # Three-phase transformer
-            "WD_CT",        # Current transformer
-            "WD_PT",        # Potential transformer
-        ],
-        "misc": [
-            "WD_FUSE",     # Fuse
-            "WD_CB",       # Circuit breaker
-            "WD_DISCONNECT",# Disconnect switch
-            "WD_PILOT_LT", # Pilot light
-            "WD_SELECTOR", # Selector switch
-            "WD_LIMIT_SW", # Limit switch
-            "WD_PUSHBTN",  # Push button
-            "WD_OVERLOAD", # Overload relay contact
-        ],
-    }
-
-    cat_lower = category.lower()
-    if cat_lower and cat_lower in _SYMBOLS:
-        result = {cat_lower: _SYMBOLS[cat_lower]}
-    elif cat_lower:
-        # Partial match
-        result = {k: v for k, v in _SYMBOLS.items() if cat_lower in k}
-    else:
-        result = _SYMBOLS
-
-    all_symbols = [s for group in result.values() for s in group]
-    return {
-        "success": True,
-        "category": category or "all",
-        "symbols": all_symbols,
-        "by_category": result,
-        "count": len(all_symbols),
-    }
+def get_symbol_list(category: str = "", library_path: str | None = None,
+                    query: str = "", limit: int = 100, offset: int = 0) -> dict[str, Any]:
+    """Paginate real DWG files; categories cover only named validated samples."""
+    from src.tools.symbol_library import list_symbols
+    return list_symbols(category, library_path, query, limit, offset)
 
 
 def set_wire_number(
@@ -310,7 +145,7 @@ def set_wire_number(
         cmd = f"WDWNUM\n{x},{y}\n{wire_number}\n\n"
         conn.send_command(cmd)
         return {
-            "success": True,
+            "success": False, "status": "submitted_unverified",
             "wire_number": wire_number,
             "position": [x, y],
         }
@@ -394,7 +229,7 @@ def create_cross_reference(
         cmd = f"WDXREF\n{source_tag}\n{dest_sheet}\n{dest_ref}\n\n"
         conn.send_command(cmd)
         return {
-            "success": True,
+            "success": False, "status": "submitted_unverified",
             "source_tag": source_tag,
             "dest_sheet": dest_sheet,
             "dest_ref": dest_ref,

@@ -1,0 +1,53 @@
+{
+  "scope": "Synthetic same-page four-terminal equipotential bus; no imposed physical wire sequence",
+  "sheet": "1",
+  "tag": "-XB",
+  "terminals": {
+    "1": "X1TERM01",
+    "2": "X4TERM01",
+    "3": "X8TERM01",
+    "4": "X2TERM01"
+  },
+  "wire_number": "501",
+  "manufacturer": "KINTO_TEST",
+  "catalog": "BRANCH_TERMINAL",
+  "quantity": 4,
+  "geometry": [
+    [
+      [
+        61.25,
+        140,
+        0
+      ],
+      [
+        258.75,
+        140,
+        0
+      ]
+    ],
+    [
+      [
+        140,
+        208.75,
+        0
+      ],
+      [
+        140,
+        140,
+        0
+      ]
+    ],
+    [
+      [
+        200,
+        71.25,
+        0
+      ],
+      [
+        200,
+        140,
+        0
+      ]
+    ]
+  ]
+}

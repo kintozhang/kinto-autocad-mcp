@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import time
 from typing import Any, Optional
+from src.autocad.com_runtime import document_full_name, read_call, hresult, DISCONNECTED, ComBusyError
 
 logger = logging.getLogger(__name__)
 
@@ -31,8 +32,12 @@ class AutoCADConnectionError(RuntimeError):
     """Raised when a COM operation fails or AutoCAD is not available."""
 
 
+class AutoCADBusyError(AutoCADConnectionError):
+    """Transient busy state; existing COM object is retained."""
+
+
 class AutoCADConnection:
-    """Manages a COM connection to a running AutoCAD Electrical 2025 instance.
+    """Manages a COM connection to a running AutoCAD Electrical 2026 instance.
 
     Usage::
 
@@ -96,7 +101,7 @@ class AutoCADConnection:
                     self._MAX_RETRIES,
                 )
                 self._app = win32com.client.GetActiveObject(self._com_object)
-                self._app.Visible = True
+                read_call(lambda: self._app.Name, label="connect probe")
                 logger.info(
                     "Connected to AutoCAD %s",
                     self._get_version_string(),
@@ -113,7 +118,7 @@ class AutoCADConnection:
         raise AutoCADConnectionError(
             f"Could not connect to AutoCAD after {self._MAX_RETRIES} attempts. "
             f"Last error: {last_error}. "
-            "Make sure AutoCAD Electrical 2025 is running."
+            "Make sure AutoCAD Electrical 2026 is running."
         )
 
     def disconnect(self) -> None:
@@ -122,23 +127,26 @@ class AutoCADConnection:
         logger.info("Disconnected from AutoCAD COM object.")
 
     def is_connected(self) -> bool:
-        """Return ``True`` if a live COM connection exists."""
+        """Probe without treating transient busy/unknown errors as disconnection."""
         if self._app is None:
             return False
         try:
-            # Touch a trivial property to verify the COM object is still alive
-            _ = self._app.Name
+            read_call(lambda: self._app.Name, label="connection probe")
             return True
-        except Exception:
-            self._app = None
-            return False
+        except ComBusyError as exc:
+            raise AutoCADBusyError(str(exc)) from exc
+        except Exception as exc:
+            if hresult(exc) in DISCONNECTED:
+                self._app = None
+                return False
+            raise AutoCADConnectionError(f"Connection probe failed; object retained: {exc}") from exc
 
     def ensure_connected(self) -> None:
         """Raise :class:`AutoCADConnectionError` if not connected."""
         if not self.is_connected():
             raise AutoCADConnectionError(
                 "AutoCAD is not connected. Call connect() first, or ensure "
-                "AutoCAD Electrical 2025 is running."
+                "AutoCAD Electrical 2026 is running."
             )
 
     # ------------------------------------------------------------------
@@ -179,7 +187,7 @@ class AutoCADConnection:
         """
         self.ensure_connected()
         try:
-            result = self._app.ActiveDocument.SendCommand(f"{lisp_expr}\n")
+            result = self.get_active_document().SendCommand(f"{lisp_expr}\n")
             return result
         except Exception as exc:
             raise AutoCADConnectionError(
@@ -200,9 +208,15 @@ class AutoCADConnection:
         """
         self.ensure_connected()
         try:
-            doc = self._app.ActiveDocument
+            doc = read_call(lambda: self._app.ActiveDocument, label="active document")
             if doc is None:
                 raise AutoCADConnectionError("No document is currently open in AutoCAD.")
+            expected = getattr(self, "_bound_document", None)
+            if expected is not None:
+                from pathlib import Path
+                if (Path(document_full_name(self._app)).resolve() != Path(expected).resolve()
+                        or read_call(lambda: int(self._app.HWND)) != self._bound_hwnd):
+                    raise AutoCADConnectionError("Bound AutoCAD instance/document changed")
             return doc
         except AutoCADConnectionError:
             raise
@@ -213,7 +227,7 @@ class AutoCADConnection:
         """Return the ModelSpace collection of the active document."""
         doc = self.get_active_document()
         try:
-            return doc.ModelSpace
+            return read_call(lambda: doc.ModelSpace, label="ModelSpace")
         except Exception as exc:
             raise AutoCADConnectionError(f"Could not retrieve ModelSpace: {exc}") from exc
 
