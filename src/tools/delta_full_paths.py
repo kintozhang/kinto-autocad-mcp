@@ -54,7 +54,7 @@ def validate_bindings(mapping, binding):
     return {'checks':checks,'pending':pending,'production_ready':False,'formal_export_allowed':False}
 
 def plan(spec):
-    fields(spec,['schema_version','recipe','purpose','manifest','symbol_path','mapping','routes','binding'],'full-path recipe')
+    fields(spec,['schema_version','recipe','purpose','manifest','symbol_path','mapping','routes','binding'] + (['eio_assumptions'] if 'eio_assumptions' in spec else []),'full-path recipe')
     if type(spec['schema_version']) is not int or spec['schema_version']!=4 or spec['recipe']!='remote_io_button_lamp_paths' or spec['purpose']!='test_only':raise ValueError('Version 4 test_only full paths required')
     pages=page_plan(spec['manifest']);entries=spec['manifest']['entries']
     if len(entries)!=2 or pages['logical_pages']!=['102','300'] or pages['effective_drawing_count']!=2:raise ValueError('Prepared effective pages 102,300 required')
@@ -97,6 +97,17 @@ def plan(spec):
     cable_zone='102.'+str(zone_at(115))
     for i,marker in enumerate(markers):
         refs.append({'id':marker['id'],'field':'XREF','value':','.join([cable_zone]*3) if i==0 else cable_zone})
+    nc50 = None
+    if 'eio_assumptions' in spec:
+        from src.tools.nc50_test_mapping import plan as nc50_plan
+        nc50 = nc50_plan({'schema_version':4,'purpose':'test_only','mapping':spec['mapping'],'eio_assumptions':spec['eio_assumptions']})
+        if not nc50['test_plan_valid']:raise ValueError('NC50 test candidates conflict with explicit addresses')
+        candidates={c['signal_id']:c['nc50_address_candidate'] for c in nc50['candidates']}
+        for component_id,signal in [('button','BUTTON'),('lamp','LAMP')]:
+            next(c for c in cs if c['id']==component_id)['attributes']['DESC2']='TEST NC50 '+candidates[signal]
+        r2=next(c for c in cs if c['id']=='r2')['attributes']
+        r2['DESC2']='TEST CANDIDATES - NOT VERIFIED'
+        r2['DESC3']='NC50 '+candidates['BUTTON']+' / '+candidates['LAMP']
     tags={}
     for component in cs:
         tag=component['attributes'].get('TAG1')
@@ -106,5 +117,5 @@ def plan(spec):
     for w in ws:w.pop('exact_network',None)
     return dict(success=True,submitted=False,pages=pages,components=cs,connections=ws,cable_markers=markers,expected_references=refs,
         component_plan={'components':[{'id':c['id'],'tag':c['attributes']['TAG1']} for c in cs if 'TAG1' in c['attributes']]},
-        routes=routes,mapping=mapping,binding=binding,production_ready=False,formal_export_allowed=False,
+        routes=routes,mapping=mapping,binding=binding,nc50_test_plan=nc50,production_ready=False,formal_export_allowed=False,
         scope='remote_io_button_lamp_paths_test_only',limitations=['Physical mating is a declared pair, not a jumper wire','Supply boundary terminals only; other original branches excluded','Unknown NC50/hardware bindings block formal output','Not a safety or PLC functional-equivalence acceptance'])

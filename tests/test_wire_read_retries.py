@@ -34,3 +34,24 @@ def test_busy_reads_never_repeat_wire_insertion(fault):
     if fault=='write_failure':
         assert not result['success'] and result['write_attempted'] and result['phase']=='insert_wire'
     else:assert result['success']
+
+
+@pytest.mark.parametrize('busy',[True,False])
+def test_wrapped_read_only_query_busy(busy):
+    from src.autocad.connection import AutoCADConnectionError
+    error=AutoCADConnectionError('query failed')
+    error.__cause__=RuntimeError(-2147418111 if busy else -2147024891,'fixture')
+    with patch.object(electrical,'_inspect_wire_once',side_effect=[error,{'success':True}]) as probe,patch('src.autocad.com_runtime.time.sleep'):
+        result=electrical.inspect_wire('A')
+    assert result['success']==busy
+    assert probe.call_count==(2 if busy else 1)
+
+
+def test_busy_after_number_write_does_not_repeat_write():
+    from src.autocad.connection import AutoCADConnectionError
+    error=AutoCADConnectionError('query busy');error.__cause__=RuntimeError(-2147418111,'busy')
+    doc=SimpleNamespace(HandleToObject=lambda h:SimpleNamespace(ObjectName='AcDbLine',Layer='TEST'))
+    with patch.object(electrical,'connection',return_value=(object(),doc)),patch.object(electrical,'evaluate',side_effect=[['TEST'],True]) as call,patch.object(electrical,'_inspect_wire_once',side_effect=[error,{'success':True,'wire_number':'PWR0'}]),patch('src.autocad.com_runtime.time.sleep'):
+        result=electrical.set_number('A','PWR0')
+    assert result['success']
+    assert sum('wd_putwn' in c.args[1] for c in call.call_args_list)==1

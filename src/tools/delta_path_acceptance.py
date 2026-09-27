@@ -40,6 +40,15 @@ def verify_native(recipe,report):
         inventory=report['device_inventory'][page]
         actual=[r['handle'].upper() for r in inventory]
         if len(actual)!=len(expected) or set(actual)!=expected:raise ValueError('Unexpected/missing native tagged device on page '+page)
+    if recipe.get('nc50_test_plan'):
+        for id in ('button','lamp','r2'):
+            component=next(c for c in recipe['components'] if c['id']==id)
+            expected=component['attributes']
+            rows=[row for row in report['reports']['bom']['rows'] if len(row)>22 and row[22].upper()=='H='+entities[id]['handle'].upper()]
+            if len(rows)!=1 or rows[0][15]!=expected['TAG1'] or rows[0][3]!=expected['CAT']:
+                raise ValueError('Missing/ambiguous native candidate BOM component: '+id)
+            if rows[0][16:19]!=[expected.get(k,'') for k in ('DESC1','DESC2','DESC3')]:
+                raise ValueError('Native candidate BOM descriptions mismatch: '+id)
     parents=defaultdict(list)
     for c in recipe['components']:
         if c['attributes'].get('TAG1'):parents[c['attributes']['TAG1'].casefold()].append(c['id'])

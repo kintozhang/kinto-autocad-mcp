@@ -159,3 +159,41 @@ def test_connector_report_resolution_requires_independent_native_handles(spec,fa
     if fault is None:assert verify_native(p,r)['success']
     else:
         with pytest.raises((ValueError,RuntimeError)):verify_native(p,r)
+
+
+def test_nc50_test_annotations_and_no_observation_promotion(spec):
+    spec['eio_assumptions']=[{'module_id':spec['mapping']['modules'][0]['id'],'eio_sequence':1,'eio_port':501,'start_address':256,'source':'test'}]
+    p=plan(spec)
+    attrs={c['id']:c['attributes'] for c in p['components']}
+    assert attrs['button']['DESC2']=='TEST NC50 X256'
+    assert attrs['lamp']['DESC2']=='TEST NC50 Y256'
+    assert attrs['r2']['DESC3']=='NC50 X256 / Y256'
+    assert all(s['global_plc_address'] is None for s in p['mapping']['signals'])
+    assert p['binding']['pending'] and not p['formal_export_allowed']
+
+
+def test_nc50_bad_range_rejects_batch_before_cad(spec):
+    spec['eio_assumptions']=[{'module_id':spec['mapping']['modules'][0]['id'],'eio_sequence':1,'eio_port':501,'start_address':481,'source':'test'}]
+    with patch('src.autocad.connection.get_connection') as conn:
+        out=execute('C:/fixture.wdp',spec,'C:/fixture.dwg')
+    assert not out['success'] and not out['submitted']
+    conn.assert_not_called()
+
+
+@pytest.mark.parametrize('fault',[None,'missing_row','wrong_description','wrong_handle'])
+def test_candidate_bom_is_native_and_exact(spec,fault):
+    from src.tools.delta_path_acceptance import verify_native
+    spec['eio_assumptions']=[{'module_id':spec['mapping']['modules'][0]['id'],'eio_sequence':1,'eio_port':501,'start_address':256,'source':'test'}]
+    p,r=native_receipt(spec)
+    for row in r['reports']['bom']['rows']:
+        c=next(c for c in p['components']+p['cable_markers'] if c['attributes'].get('CAT')==row[3])
+        row.extend(['']*(27-len(row)))
+        row[16:19]=[c['attributes'].get(k,'') for k in ('DESC1','DESC2','DESC3')]
+        row[22]='h='+r['entities'][c['id']]['handle']
+    row=next(row for row in r['reports']['bom']['rows'] if row[3]=='LAMP_24V_TEST')
+    if fault=='missing_row':r['reports']['bom']['rows'].remove(row)
+    if fault=='wrong_description':row[17]='TEST NC50 Y288'
+    if fault=='wrong_handle':row[22]='h=FFFF'
+    if fault:
+        with pytest.raises(ValueError):verify_native(p,r)
+    else:assert verify_native(p,r)['routes']==4

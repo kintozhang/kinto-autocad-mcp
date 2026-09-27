@@ -217,7 +217,17 @@ def set_number(wire_handle, number):
 def inspect_wire(wire_handle):
     """Read-only network snapshot; an interrupted read never repeats a wire write."""
     from src.autocad.com_runtime import read_call
-    try:return read_call(lambda:_inspect_wire_once(wire_handle),label="complete wire snapshot")
+    def snapshot():
+        from src.autocad.connection import AutoCADConnectionError
+        from src.autocad.com_runtime import hresult, BUSY
+        try:return _inspect_wire_once(wire_handle)
+        except AutoCADConnectionError as exc:
+            # Only this entirely read-only snapshot may retry a rejected Lisp query.
+            # SendCommand and all write callers continue to submit exactly once.
+            if exc.__cause__ is not None and hresult(exc.__cause__) in BUSY:
+                raise exc.__cause__
+            raise
+    try:return read_call(snapshot,label="complete wire snapshot")
     except Exception as exc:return failure(exc)
 
 
