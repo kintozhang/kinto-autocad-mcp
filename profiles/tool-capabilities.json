@@ -461,10 +461,10 @@
     "execute_trebi_batch": {
       "status": "live_sample_verified",
       "default_enabled": true,
-      "scope": "TREBI v1 and bounded Delta v2-v4 test recipes; v4 separate connector halves, four cable paths, native reports, independent reopen and two-page PDF accepted",
+      "scope": "TREBI v1 and bounded Delta v2-v4 test recipes; v4 separate connector halves, four cable paths, native reports, independent reopen and two-page PDF accepted; optional NC50 EIO candidate descriptions checked against native attributes/BOM, independently reopened and PDF reviewed",
       "replacement": null,
       "issue": "Blank test pages only; fixed PNP X00/Y00 candidate; unknown hardware/NC50 bindings and engineering release remain blocked; no full TREBI/safety acceptance",
-      "evidence": "docs/p0-full-paths.md"
+      "evidence": "docs/nc50-test-mapping.md"
     },
     "plan_delta_r2_io": {
       "status": "offline_and_stdio_verified",

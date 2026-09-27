@@ -62,3 +62,6 @@ R2-EC0902D0按EtherCAT远程I/O建模，NC50E-FE内置PLC拥有控制逻辑。�
 
 
 NC50离线测试可用plan_delta_r2_io v4，见[测试映射](../../docs/nc50-test-mapping.md)。手册明确的Start Address规则可生成候选，不必等待实物才能测试。候选与原mapping中的观察分开；不得把候选复制成已观察地址/站号/PDO。EIO序号不含伺服，且不等于全网从站位置。此规划不写DWG；现有TREBI批量v4仍只接受自己的受限配方。
+
+
+候选地址图面验证：四路径批量可选eio_assumptions，将NC50候选写入按钮/灯DESC2及R2描述，必须带TEST/NOT VERIFIED；原线号/端子/信号字段不替换。验收同时按对象句柄检查BOM描述，并做独立重开与PDF视觉核验。创建工具结束会恢复原图与原项目，调用批量前须同时确认新DWG和新Electrical项目已激活，不能只切换图纸。
