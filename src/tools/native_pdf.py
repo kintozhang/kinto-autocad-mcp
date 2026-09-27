@@ -62,7 +62,7 @@ def export_pdf(project_path, output_path, template_mode):
             original = conn.get_active_document()
             original_path = Path(original.FullName).resolve()
             members=saved_members(app, pages)
-            trebi=trebi_project(members,pages) if template_mode=='synthetic_trebi_a3' else None
+            trebi=trebi_project(members,pages,allow_draft_metadata=True) if template_mode=='synthetic_trebi_a3' else None
             hashes = {str(p): digest(p) for p in [project, *pages]}
             operation = output.parent / ('pdf-job-' + uuid4().hex)
             # plot_snapshot creates the fresh operation directory and retains failure receipts.
@@ -86,6 +86,7 @@ def export_pdf(project_path, output_path, template_mode):
                           note='Synthetic test PDF only. Visual review PENDING; no construction/design acceptance.')
             if trebi is not None:
                 result['logical_page_order']=[p['logical_page'] for p in trebi]
+                result['draft_title_metadata_pending']={p['logical_page']:p.get('draft_metadata_pending',[]) for p in trebi}
             (operation / 'result.json').write_text(json.dumps(result, indent=2), encoding='utf8')
             return result
     except Exception as exc:

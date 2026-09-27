@@ -45,3 +45,16 @@ def test_tampered_destination_fails_readback():
     w,e=fixture();expected=add_navigation(w,e);expected['links'][0]['target_pdf_page']=3
     stream=io.BytesIO();w.write(stream)
     with pytest.raises(ValueError,match='readback'):verify(PdfReader(stream),expected)
+
+
+def test_navigation_restarts_read_only_snapshot_after_untyped_proxy():
+    from types import SimpleNamespace
+    from src.autocad.pdf_navigation import collect
+    class Block:
+        ObjectName='AcDbBlockReference';HasAttributes=True;Name='TITLE';Handle='AB';calls=0
+        def GetAttributes(self):
+            self.calls+=1
+            if self.calls==1:raise AttributeError('GetAttributes.TagString')
+            return [SimpleNamespace(TagString='NEXT',TextString='300',Invisible=False,GetBoundingBox=lambda:((401,12,0),(407,15,0)))]
+    b=Block();result=collect(SimpleNamespace(ModelSpace=[b]),'TITLE')
+    assert b.calls==2 and result['links'][0]['target_page']=='300'

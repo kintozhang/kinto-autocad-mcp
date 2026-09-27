@@ -34,7 +34,7 @@ def digest(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def trebi_page(doc, total):
+def trebi_page(doc, total, *, allow_draft_metadata=False):
     """Read the source identity before plotting; never replace logical pages with PDF indices."""
     from src.autocad.trebi_rules import profile, validate_fields
     from src.autocad.trebi_native_grid import settings
@@ -46,16 +46,16 @@ def trebi_page(doc, total):
     title=titles[0]
     if tuple(title.InsertionPoint)!=(0.,0.,0.) or title.Rotation!=0 or any(getattr(title,k)!=1 for k in ['XScaleFactor','YScaleFactor','ZScaleFactor']):
         raise ValueError('TREBI frame must have its verified origin, scale and rotation')
-    fields=get_block_attributes(title);validate_fields(fields)
+    fields=get_block_attributes(title);validate_fields(fields,allow_draft_metadata=allow_draft_metadata)
     expected=settings(fields['PAGE']);native=get_block_attributes(natives[0])
     if any(native.get(k)!=v for k,v in expected.items()): raise ValueError('TREBI native grid disagrees with frame')
     if fields['OF']!=str(total): raise ValueError('TREBI OF must equal effective project drawing count')
-    return {'logical_page':fields['PAGE'],'title_fields':fields}
+    return {'logical_page':fields['PAGE'],'title_fields':fields,**({'draft_metadata_pending':[k for k,v in fields.items() if not v]} if allow_draft_metadata else {})}
 
 
-def trebi_project(members,pages):
+def trebi_project(members,pages, *, allow_draft_metadata=False):
     from src.autocad.trebi_rules import page_navigation
-    identities=[trebi_page(members[p],len(pages)) for p in pages]
+    identities=[trebi_page(members[p],len(pages),allow_draft_metadata=allow_draft_metadata) for p in pages]
     logical=[v['logical_page'] for v in identities]
     for identity in identities:
         wanted=page_navigation(logical,identity['logical_page'])
@@ -96,15 +96,15 @@ def plot_snapshot(source, staging, app, expected_hashes=None, template_mode="syn
             item = {'page': index, 'source_dwg': str(page), 'copy_dwg': str(copy),
                     'raw_pdf': str(pdf), 'status': 'COPY_CREATED'}
             report['pages'].append(item); record()
-            doc = lookup_document_open(app)(str(copy))
-            wait_for_document(app, copy)
+            lookup_document_open(app)(str(copy))
+            doc = wait_for_document(app, copy)  # Fresh typed document after Open readiness.
             def guard():
                 if Path(read_call(lambda: app.ActiveDocument.FullName, label="plot target")).resolve() != copy:
                     raise RuntimeError('Active drawing changed; stopped without retry')
             guard()
             # These are explicitly synthetic acceptance copies, not a generic template edit.
             if template_mode=='synthetic_trebi_a3':
-                identity=trebi_page(doc,len(pages))
+                identity=trebi_page(doc,len(pages),allow_draft_metadata=True)
                 if identity!=trebi_pages[index-1]: raise RuntimeError('Copied TREBI identity changed')
                 item.update(identity)
                 from src.autocad.pdf_navigation import collect

@@ -5,6 +5,11 @@ from pypdf.annotations import Link
 from pypdf.generic import Fit
 
 def collect(doc, title_name):
+    from src.autocad.com_runtime import read_attribute_metadata
+    return read_attribute_metadata(lambda:_collect_once(doc,title_name),label="complete PDF navigation snapshot")
+
+
+def _collect_once(doc, title_name):
     links=[]
     for obj in doc.ModelSpace:
         if obj.ObjectName!='AcDbBlockReference' or not obj.HasAttributes: continue

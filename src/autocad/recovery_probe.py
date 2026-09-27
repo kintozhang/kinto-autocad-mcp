@@ -2,6 +2,18 @@
 import hashlib,json,sys
 from pathlib import Path
 
+def entity_snapshot(e):
+    from src.autocad.utils import get_block_attributes
+    row={'handle':e.Handle,'type':e.ObjectName,'layer':e.Layer}
+    if e.ObjectName=='AcDbBlockReference':row.update(name=e.Name,attributes=get_block_attributes(e),position=list(e.InsertionPoint))
+    elif e.ObjectName=='AcDbLine':row.update(start=list(e.StartPoint),end=list(e.EndPoint))
+    elif e.ObjectName=='AcDbText':row.update(text=e.TextString,position=list(e.InsertionPoint),height=e.Height)
+    elif e.ObjectName=='AcDbMText':row.update(text=e.TextString,position=list(e.InsertionPoint),height=e.Height,width=e.Width,rotation=e.Rotation,attachment=e.AttachmentPoint,direction=e.DrawingDirection,style=e.StyleName)
+    elif e.ObjectName=='AcDbCircle':row.update(center=list(e.Center),radius=e.Radius)
+    else:raise ValueError('Recovery snapshot unsupported entity '+e.ObjectName)
+    return row
+
+
 def main():
     import pythoncom
     from src.autocad.connection import get_connection
@@ -16,13 +28,7 @@ def main():
         def sample():
             rows=[]
             for e in doc.ModelSpace:
-                row={'handle':e.Handle,'type':e.ObjectName,'layer':e.Layer}
-                if e.ObjectName=='AcDbBlockReference':row.update(name=e.Name,attributes=get_block_attributes(e),position=list(e.InsertionPoint))
-                elif e.ObjectName=='AcDbLine':row.update(start=list(e.StartPoint),end=list(e.EndPoint))
-                elif e.ObjectName=='AcDbText':row.update(text=e.TextString,position=list(e.InsertionPoint),height=e.Height)
-                elif e.ObjectName=='AcDbCircle':row.update(center=list(e.Center),radius=e.Radius)
-                else:raise ValueError('Recovery snapshot unsupported entity '+e.ObjectName)
-                rows.append(row)
+                rows.append(entity_snapshot(e))
             p=Path(doc.FullName)
             return {'path':str(p.resolve()),'hwnd':int(app.HWND),'saved':bool(doc.Saved),
                     'idle':bool(app.GetAcadState().IsQuiescent) and int(doc.GetVariable('CMDACTIVE'))==0,

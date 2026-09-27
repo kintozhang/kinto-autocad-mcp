@@ -27,3 +27,23 @@ def test_nonbusy_failure_is_not_hidden_as_partial_attributes():
         def TextString(self): raise ValueError("unreadable")
     block = SimpleNamespace(GetAttributes=lambda: [SimpleNamespace(TagString="OF",TextString="1"),Bad()])
     with pytest.raises(ValueError,match="unreadable"): get_block_attributes(block)
+
+
+def test_known_untyped_attribute_refreshes_complete_snapshot():
+    class Block:
+        calls=0
+        def GetAttributes(self):
+            self.calls+=1
+            if self.calls==1:raise AttributeError('GetAttributes.TagString')
+            return [SimpleNamespace(TagString='PAGE',TextString='102')]
+    b=Block();assert get_block_attributes(b)=={'PAGE':'102'} and b.calls==2
+
+
+def test_unrelated_attribute_error_is_not_hidden():
+    class Block:
+        calls=0
+        def GetAttributes(self):
+            self.calls+=1;raise AttributeError('coding_error')
+    b=Block()
+    with pytest.raises(AttributeError,match='coding_error'):get_block_attributes(b)
+    assert b.calls==1

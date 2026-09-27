@@ -48,3 +48,20 @@ def test_trebi_preflight_failure_never_creates_plot_copy(tmp_path):
         result=native_pdf.export_pdf(str(project),str(tmp_path/'out.pdf'),'synthetic_trebi_a3')
     assert not result['success'] and result['operation_directory'] is None
     plot.assert_not_called()
+
+
+def test_explicit_synthetic_draft_preserves_blank_metadata_without_forging_values():
+    from src.autocad.trebi_rules import DRAFT_METADATA
+    doc=fixture()
+    for field in DRAFT_METADATA:doc.ModelSpace[0].attrs[field]=''
+    with patch('src.autocad.utils.get_block_attributes',side_effect=lambda e:e.attrs):
+        with pytest.raises(ValueError):trebi_page(doc,2)
+        result=trebi_page(doc,2,allow_draft_metadata=True)
+    assert set(result['draft_metadata_pending'])==DRAFT_METADATA
+    assert result['title_fields']['SIGNATURE']==''
+
+@pytest.mark.parametrize('field',['BRAND','PAGE','OF','PREV','NEXT'])
+def test_draft_never_allows_blank_identity_or_navigation(field):
+    doc=fixture();doc.ModelSpace[0].attrs[field]=''
+    with patch('src.autocad.utils.get_block_attributes',side_effect=lambda e:e.attrs):
+        with pytest.raises(ValueError):trebi_page(doc,2,allow_draft_metadata=True)

@@ -80,3 +80,15 @@ def test_pdf_postwrite_failure_still_quarantines(tmp_path):
     with patch('src.autocad.isolated.gate_path',return_value=tmp_path/'session.lock'),patch('src.autocad.client_gate.gate_path',return_value=tmp_path/'session.lock'),patch('src.autocad.isolated.run_worker',return_value=result):
         assert isolated(export_electrical_project_pdf)()['status']=='outcome_unknown'
         assert diagnose()['marker']
+
+
+def test_mtext_reference_snapshot_detects_content_and_geometry_changes():
+    from types import SimpleNamespace
+    from src.autocad.recovery_probe import entity_snapshot
+    obj=SimpleNamespace(Handle='AB',ObjectName='AcDbMText',Layer='XREF',TextString='102.2,102.2',InsertionPoint=(1,2,0),Height=2.,Width=30.,Rotation=0.,AttachmentPoint=1,DrawingDirection=1,StyleName='STANDARD')
+    first=entity_snapshot(obj);obj.TextString='102.9'
+    assert recovery.fingerprint(first)!=recovery.fingerprint(entity_snapshot(obj))
+    obj.TextString=first['text'];obj.Width=31.
+    assert recovery.fingerprint(first)!=recovery.fingerprint(entity_snapshot(obj))
+    obj.ObjectName='AcDbHatch'
+    with pytest.raises(ValueError,match='unsupported'):entity_snapshot(obj)

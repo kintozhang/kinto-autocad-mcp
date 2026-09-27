@@ -216,8 +216,8 @@ def get_block_attributes(block_ref: Any) -> dict[str, str]:
     """
     # A partial attribute set is not a valid readback. Retry only known busy
     # HRESULTs, rebuilding the whole snapshot each time; propagate other errors.
-    from src.autocad.com_runtime import read_call
-    return read_call(
+    from src.autocad.com_runtime import read_attribute_metadata
+    return read_attribute_metadata(
         lambda: {attr.TagString.upper(): attr.TextString
                  for attr in block_ref.GetAttributes()},
         label="complete block attribute snapshot",

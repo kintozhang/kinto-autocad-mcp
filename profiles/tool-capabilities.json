@@ -509,7 +509,7 @@
       "default_enabled": true,
       "status": "restricted_recovery",
       "scope": "Inspect stable saved target and release reviewed interruption for NEW operations; never replay/undo",
-      "issue": "Only block/line/text/circle model-space snapshots; unknown entities or running workers refuse recovery",
+      "issue": "Only saved block/line/text/MText/circle model-space snapshots; unknown entities or running workers refuse recovery",
       "evidence": "docs/interruption-recovery.md"
     },
     "insert_test_parametric_connector": {

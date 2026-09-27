@@ -188,3 +188,17 @@ def document_inventory(app, *, attempts=12, interval=.15):
         if attempt + 1 < attempts:
             time.sleep(interval)
     raise ComBusyError('Document inventory did not stabilize; no writes submitted')
+
+
+def read_attribute_metadata(read, *, attempts=8, interval=.15, label='attribute metadata snapshot'):
+    """Read only: refresh the whole snapshot for known untyped attribute proxies.
+
+    Do not widen read_call to arbitrary AttributeError: programming errors and
+    missing genuine properties must remain visible.
+    """
+    known={'GetAttributes.TagString','GetAttributes.TextString','<unknown>.TagString','<unknown>.TextString'}
+    for attempt in range(attempts):
+        try:return read_call(read,label=label)
+        except AttributeError as exc:
+            if str(exc) not in known or attempt+1==attempts:raise
+            time.sleep(interval)

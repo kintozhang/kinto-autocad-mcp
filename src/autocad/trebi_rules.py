@@ -27,12 +27,16 @@ def zone_at(x):
     if not left<=x<=right:raise ValueError("Outside drawing frame")
     return min(9,int((x-left)/((right-left)/10)))
 
-def validate_fields(values):
+DRAFT_METADATA={"REV","CHANGES","REV_DATE","SIGNATURE","PLAN","ORDER","CUSTOMER","DESCRIPTION","PLANNER","DATE"}
+
+
+def validate_fields(values, *, allow_draft_metadata=False):
     cfg=profile()
     if set(values)!={f["tag"] for f in cfg["fields"]}:raise ValueError("Exact declared title fields required")
     for field in cfg["fields"]:
         value=values[field["tag"]]
-        if not isinstance(value,str) or not value or len(value)>field["max_chars"] or any(ord(c)<32 for c in value):
+        if (not isinstance(value,str) or (not value and not (allow_draft_metadata and field["tag"] in DRAFT_METADATA))
+                or len(value)>field["max_chars"] or any(ord(c)<32 for c in value)):
             raise ValueError("Invalid title field: "+field["tag"])
     for key in ("PAGE","OF","PREV","NEXT"):
         if not re.fullmatch(r"[0-9]+|-",values[key]):raise ValueError("Invalid page field")
