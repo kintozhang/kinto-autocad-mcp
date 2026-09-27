@@ -1,4 +1,4 @@
-"""Three-wire sensor path preflight; native full-path qualification is pending."""
+"""Three-wire sensor preflight with opt-in bounded native test execution."""
 from copy import deepcopy
 from pathlib import Path
 import re
@@ -9,12 +9,12 @@ from src.autocad.trebi_project_pages import plan as page_plan
 ROLES = ('sensor_supply', 'sensor_return', 'sensor_signal')
 
 def plan(spec):
-    fields(spec, ['schema_version', 'recipe', 'purpose', 'manifest', 'mapping', 'routes', 'sensor'], 'sensor path recipe')
+    fields(spec, ['schema_version', 'recipe', 'purpose', 'manifest', 'mapping', 'routes', 'sensor'] + (['execution'] if 'execution' in spec else []), 'sensor path recipe')
     if type(spec['schema_version']) is not int or spec['schema_version'] != 5 or spec['recipe'] != 'remote_io_sensor_paths' or spec['purpose'] != 'test_only':
         raise ValueError('Version 5 test_only sensor path preflight required')
     pages = page_plan(spec['manifest'])
     entries = spec['manifest']['entries']
-    if len(entries) != 2 or pages['logical_pages'] != ['102', '300'] or pages['effective_drawing_count'] != 2:
+    if len(entries) != 2 or pages['effective_drawing_count'] != 2 or ('execution' not in spec and pages['logical_pages'] != ['102', '300']):
         raise ValueError('Effective pages 102 and 300 required')
     names = [e.get('drawing_file') for e in entries]
     if any(not isinstance(n, str) or Path(n).name != n or Path(n).suffix.lower() != '.dwg' for n in names) or len({n.casefold() for n in names}) != 2:
@@ -26,8 +26,8 @@ def plan(spec):
     for key in ('tag', 'source'): literal(sensor[key], key)
     # A supplied physical model is not independently verified by this preflight.
     for key in ('hardware_model', 'hardware_output_type'): literal(sensor[key], key, True)
-    if not re.fullmatch(r'-102B[1-9][0-9]*', sensor['tag']):
-        raise ValueError('Sensor owner page must be 102')
+    if not re.fullmatch('-'+re.escape(pages['logical_pages'][0])+r'B[1-9][0-9]*', sensor['tag']):
+        raise ValueError('Sensor tag must match its field page')
     routes = spec['routes']
     if not isinstance(routes, list) or len(routes) != 3:
         raise ValueError('Supply, return and signal routes all required')
@@ -43,7 +43,7 @@ def plan(spec):
         if (route['device_terminal'], route['original'], route['wire_number'], route['wire_layer']) != expected[role] or route['device'] != sensor['tag']:
             raise ValueError('Sensor pin, original identity and test network must remain distinct')
         if route['socket_pin'] != route['plug_pin']: raise ValueError('Mating pin mismatch')
-        if (route['core'], route['socket_pin']) != dict(zip(ROLES, [('1','4'), ('2','5'), ('4','7')]))[role]:
+        if 'execution' not in spec and (route['core'], route['socket_pin']) != dict(zip(ROLES, [('1','4'), ('2','5'), ('4','7')]))[role]:
             raise ValueError('I546 reference cable core/pin differs')
         for seen, key in [(cores, (route['cable'].casefold(), route['core'].casefold())), (pins, (route['socket'].casefold(), route['socket_pin'].casefold())), (terminals, (route['strip'].casefold(), route['terminal'].casefold()))]:
             if key in seen: raise ValueError('Duplicate cable core, pin or terminal')
@@ -65,10 +65,15 @@ def plan(spec):
     inventory = inventory_plan({'schema_version': 3, 'purpose': 'test_only', 'module_id': target['module_id']})
     matches = [p for section in inventory['sections'] for p in section['terminals'] if p.get('role') == 'input' and (p.get('port'), p.get('channel')) == (target['port'], target['channel'])]
     if len(matches) != 1: raise ValueError('Unique documented R2 input required')
-    return dict(success=True, submitted=False, cad_contacted=False, status='sensor_paths_preflight_only',
+    result = dict(success=True, submitted=False, cad_contacted=False, status='sensor_paths_preflight_only',
         execution_supported=False, production_ready=False, formal_export_allowed=False,
         pages=pages, sensor=deepcopy(sensor), routes=[by_id[r] for r in ROLES], mapping=mapping,
         target_endpoint=matches[0], input_common={'electrical_connection': 'X8TERM76', 'test_potential': 'TEST_0V'},
         sensor_connections={'X2TERM02': '1', 'X2TERM03': '3', 'X8TERM01': '4'},
         pending=mapping['pending'] + ['Sensor physical model/output type unverified', 'Native full sensor path batch, shared loads, reopen, reports and PDF qualification pending'],
         limitations=['Connector mating is declared; no fictitious jumper', 'No hardware contacted; target is a test assignment', 'Existing branch test is not complete shared-load acceptance'])
+
+    if 'execution' in spec:
+        from src.tools.sensor_circuit import build
+        result.update(build(spec, result))
+    return result

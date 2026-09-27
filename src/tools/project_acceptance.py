@@ -41,6 +41,11 @@ def audit(project_path, evidence_files):
             if not isinstance(data.get('reviewer'),str) or not data['reviewer'].strip():raise ValueError('Evidence reviewer/producer required')
             accepted[kind]={'path':str(path.resolve()),'sha256':digest(path),'checks':len(checks),'reviewer':data['reviewer']}
         except Exception as exc:findings.append({'path':str(path),'reason':str(exc)})
+    if p0 is not None:
+        for kind in p0.get('verified_categories',[]):
+            accepted.setdefault(kind,{'path':p0['receipt'],'sha256':p0['receipt_sha256'],
+                'checks':'recomputed_native_recipe','reviewer':'bounded_native_path_verifier',
+                'scope':'exact saved project and supported recipe only'})
     missing=[k for k in REQUIRED if k not in accepted]
     blockers=[{'category':k,'reason':'Missing valid current-version evidence'} for k in missing]+findings
     return {'success':True,'project':str(project),'subjects':subjects,'accepted':accepted,'blockers':blockers,

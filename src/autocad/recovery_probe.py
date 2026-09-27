@@ -9,6 +9,13 @@ def entity_snapshot(e):
     elif e.ObjectName=='AcDbLine':row.update(start=list(e.StartPoint),end=list(e.EndPoint))
     elif e.ObjectName=='AcDbText':row.update(text=e.TextString,position=list(e.InsertionPoint),height=e.Height)
     elif e.ObjectName=='AcDbMText':row.update(text=e.TextString,position=list(e.InsertionPoint),height=e.Height,width=e.Width,rotation=e.Rotation,attachment=e.AttachmentPoint,direction=e.DrawingDirection,style=e.StyleName)
+    elif e.ObjectName=='AcDbArc':row.update(center=list(e.Center),radius=e.Radius,start_angle=e.StartAngle,end_angle=e.EndAngle,normal=list(e.Normal),thickness=e.Thickness)
+    elif e.ObjectName=='AcDbPolyline':
+        coordinates=list(e.Coordinates)
+        if len(coordinates)%2:raise ValueError('Invalid lightweight polyline coordinate count')
+        count=len(coordinates)//2
+        row.update(coordinates=coordinates,elevation=e.Elevation,closed=bool(e.Closed),normal=list(e.Normal),thickness=e.Thickness,
+                   bulges=[e.GetBulge(i) for i in range(count)],widths=[list(e.GetWidth(i)) for i in range(count)])
     elif e.ObjectName=='AcDbCircle':row.update(center=list(e.Center),radius=e.Radius)
     else:raise ValueError('Recovery snapshot unsupported entity '+e.ObjectName)
     return row

@@ -815,9 +815,13 @@ def export_electrical_project_report(project_path: str, report_type: str,
 
 @registered_tool()
 def get_tool_capabilities() -> dict[str, Any]:
-    """List all implemented tool statuses, default exposure, gaps and replacements."""
+    """List tool statuses and shared Codex/Claude project handoff (read-only)."""
     from src.tool_policy import catalogue
-    return {"success":True,"tools":catalogue()}
+    from pathlib import Path
+    handoff = Path(__file__).resolve().parents[1] / "docs/RESUME-20260927-sensor-batch.md"
+    return {"success":True,"tools":catalogue(),"project_handoff":{
+        "path":str(handoff),"content":handoff.read_text(encoding="utf-8-sig") if handoff.is_file() else None,
+        "note":"Shared disk checkpoint; inspect live receipts before resuming. Not execution authorization."}}
 
 
 @registered_tool()
@@ -876,7 +880,8 @@ def get_execution_diagnostics() -> dict[str, Any]:
 def plan_trebi_batch(spec: dict[str, Any]) -> dict[str, Any]:
     """Plan bounded TREBI logical pages, inherited tags and exact references without CAD.
 
-    Version 5 preflights test-only three-wire sensor paths; execution is not qualified.
+    Version 5 plans three-wire sensor test paths. Optional execution settings assemble
+    a bounded native circuit with shared loads; unknown hardware still blocks release.
     Does not scan existing drawings or select replacement catalog parts.
     """
     from src.tools.trebi_batch import plan
@@ -890,7 +895,9 @@ def plan_trebi_batch(spec: dict[str, Any]) -> dict[str, Any]:
 def execute_trebi_batch(project_path: str, spec: dict[str, Any], drawing_path: str) -> dict[str, Any]:
     """Execute TREBI v1, Delta test_only v2 (one page) v3 (three DI/DO pages) or v4 (split connector/cable paths).
 
-    Version 5 sensor paths are planning-only and are rejected before batch writes.
+    Version 5 with execution settings draws a bounded sensor test circuit, verifies
+    native reports, then saves/reopens and independently reads it again. Without
+    execution settings v5 remains planning-only. Production release is unsupported.
     All pages must be open/saved, WDT and LINE20 must match manifest. Applies
     grid/title rules, inserts relay/NO contact/terminals/signal arrows, connects
     v1 horizontal wires or fixed v2 Delta wiring, numbers, references and reports.

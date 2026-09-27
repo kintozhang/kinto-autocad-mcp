@@ -453,7 +453,7 @@
     "plan_trebi_batch": {
       "status": "offline_and_stdio_verified",
       "default_enabled": true,
-      "scope": "TREBI v1-v4 preflight; v4 test-only R2 PNP DI/DO four-route connector/cable/common/PDO contract",
+      "scope": "TREBI v1-v5 preflight; v4 test-only R2 PNP DI/DO four-route connector/cable/common/PDO contract; v5 three-wire sensor paths (execution settings enable bounded drawing)",
       "replacement": null,
       "issue": "Bounded recipes; no automatic catalog selection or hardware discovery",
       "evidence": "docs/p0-full-paths.md"
@@ -461,10 +461,10 @@
     "execute_trebi_batch": {
       "status": "live_sample_verified",
       "default_enabled": true,
-      "scope": "TREBI v1 and bounded Delta v2-v4 test recipes; v4 separate connector halves, four cable paths, native reports, independent reopen and two-page PDF accepted; optional NC50 EIO candidate descriptions checked against native attributes/BOM, independently reopened and PDF reviewed",
+      "scope": "TREBI v1 and bounded Delta v2-v4 test recipes; v4 separate connector halves, four cable paths, native reports, independent reopen and two-page PDF accepted; optional NC50 EIO candidate descriptions checked against native attributes/BOM, independently reopened and PDF reviewed; v5 three-wire sensor (R2 Port0 ch0-2) with shared button/lamp supply/0V branches, cable parent/child references, native reports, cross-page signal path, automatic save/reopen and two-page TREBI PDF review accepted on SENSOR-FULL-20260927-D",
       "replacement": null,
-      "issue": "Blank test pages only; fixed PNP X00/Y00 candidate; unknown hardware/NC50 bindings and engineering release remain blocked; no full TREBI/safety acceptance",
-      "evidence": "docs/nc50-test-mapping.md"
+      "issue": "Blank test pages only; fixed PNP X00/Y00 candidate; v5 shared button/lamp ends at test boundary terminals (not a full I545/O529 control chain); unknown hardware/NC50 bindings and engineering release remain blocked; no full TREBI/safety acceptance",
+      "evidence": "docs/sensor-path-preflight.md"
     },
     "plan_delta_r2_io": {
       "status": "offline_and_stdio_verified",

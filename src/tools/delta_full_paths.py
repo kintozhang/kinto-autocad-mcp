@@ -75,17 +75,15 @@ def plan(spec):
     def comp(id,role,symbol,page,x,y,attrs,**extra):
         cs.append(dict(id=id,role=role,symbol=symbol,drawing_page=page,x=x,y=y,attributes=attrs,**extra))
     def wire(id,a,ap,b,bp,num,layer):ws.append(dict(id=id,from_id=a,from_connection=ap,to_id=b,to_connection=bp,wire_number=num,wire_layer=layer,exact_network=True))
-    comp('button','button_test','VPB11','102',300,220,{'TAG1':routes[0]['device'],'TERM01':'13','TERM02':'14','MFG':'KINTO_TEST','CAT':'BUTTON_NO_TEST','DESC1':'INPUT TEST ONLY'})
-    comp('lamp','delta_lamp_test','VLT1G','102',300,140,{'TAG1':routes[2]['device'],'TERM01':'1','TERM02':'2','MFG':'KINTO_TEST','CAT':'LAMP_24V_TEST','DESC1':'STEADY OUTPUT TEST'})
-    pins=[r['socket_pin'] for r in routes]
-    for id,side,x,tag in [('socket','socket',170,routes[0]['socket']),('plug','plug',190,routes[0]['plug'])]:
-        comp(id,'connector_half',None,'102',x,240,{'TAG1':tag,'MFG':'KINTO_TEST','CAT':'CONNECTOR_'+side.upper()+'_TEST','DESC1':'MATES '+(routes[0]['plug'] if side=='socket' else routes[0]['socket'])},side=side,pins=pins)
-    for i,(r,num,layer,dev,pin) in enumerate(zip(routes,['TEST24','TEST_DI','TEST_DO','TEST0'],['TEST_24V','TEST_SIGNAL','TEST_SIGNAL','TEST_0V'],['button','button','lamp','lamp'],['X2TERM01','X8TERM02','X2TERM01','X8TERM02'])):
-        y=240-40*i;tid='strip_'+r['id'];wid='cable_'+r['id']
-        comp(tid,'terminal','HT0001','102',75,y,{'TAGSTRIP':r['strip'],'TERM01':r['terminal']})
-        wire(wid,tid,'X1TERM01','socket',f'X4TERM{i+1:02d}J',num,layer)
-        wire('field_'+r['id'],'plug',f'X1TERM{i+1:02d}P',dev,pin,num,layer)
-        markers.append(dict(id='core_'+r['id'],role='cable_parent' if i==0 else 'cable_child',symbol='HW01' if i==0 else 'HW02',drawing_page='102',x=115,y=y,attributes={('TAG1' if i==0 else 'TAG2'):r['cable'],'RATING1':r['core'],**({'MFG':'KINTO_TEST','CAT':'FOUR_CORE_TEST'} if i==0 else {})},wire_id=wid))
+    from src.tools.circuit_blocks import device
+    cs.append(device('button','button','102',300,220,routes[0]['device'],{'DESC1':'INPUT TEST ONLY'}))
+    cs.append(device('lamp','lamp','102',300,140,routes[2]['device'],{'DESC1':'STEADY OUTPUT TEST'}))
+    from src.tools.circuit_blocks import cable_pair
+    parts, links, markers, cable_refs = cable_pair(routes, '102',
+        [(dev,pin,num,layer) for dev,pin,num,layer in zip(['button','button','lamp','lamp'],
+        ['X2TERM01','X8TERM02','X2TERM01','X8TERM02'],['TEST24','TEST_DI','TEST_DO','TEST0'],
+        ['TEST_24V','TEST_SIGNAL','TEST_SIGNAL','TEST_0V'])], 'FOUR_CORE_TEST')
+    cs.extend(parts); ws.extend(links)
     for code,src,dst,src_symbol in [('TEST_DI',('di_src','102',35,200),('di_dst','300',50,238),'HA1S3'),('TEST_DO',('do_src','300',250,238),('do_dst','102',35,160),'HA1S1')]:
         for role,item,other,symbol in [('source',src,dst,src_symbol),('destination',dst,src,'HA1D3')]:
             id,page,x,y=item;comp(id,role,symbol,page,x,y,{'SIGCODE':code},signal_code=code)
@@ -94,9 +92,7 @@ def plan(spec):
     wire('output_from_arrow','do_dst','X1TERM01','strip_lamp_feed','X4TERM01','TEST_DO','TEST_SIGNAL')
     wire('module_input','di_dst','X1TERM01','r2','X4TERM01','TEST_DI','TEST_SIGNAL')
     wire('module_output','r2','X1TERM33','do_src','X4TERM01','TEST_DO','TEST_SIGNAL')
-    cable_zone='102.'+str(zone_at(115))
-    for i,marker in enumerate(markers):
-        refs.append({'id':marker['id'],'field':'XREF','value':','.join([cable_zone]*3) if i==0 else cable_zone})
+    refs.extend(cable_refs)
     nc50 = None
     if 'eio_assumptions' in spec:
         from src.tools.nc50_test_mapping import plan as nc50_plan
@@ -115,6 +111,8 @@ def plan(spec):
     if any(len(ids)>1 and ids!={'button','lamp'} for ids in tags.values()):raise ValueError('Duplicate physical device tag in recipe')
     # Native netlist ends at terminal sides; the route model records terminal continuity.
     for w in ws:w.pop('exact_network',None)
+    from src.tools.circuit_blocks import validate_circuit
+    validate_circuit(cs,ws,markers,shared_tag_pairs=[{'button','lamp'}])
     return dict(success=True,submitted=False,pages=pages,components=cs,connections=ws,cable_markers=markers,expected_references=refs,
         component_plan={'components':[{'id':c['id'],'tag':c['attributes']['TAG1']} for c in cs if 'TAG1' in c['attributes']]},
         routes=routes,mapping=mapping,binding=binding,nc50_test_plan=nc50,production_ready=False,formal_export_allowed=False,

@@ -140,9 +140,12 @@ def test_unified_audit_automatically_loads_p0_and_blocks_unknown_hardware(spec,t
     sidecar=project.with_suffix('.p0.json');sidecar.write_text(json.dumps({'schema_version':1,'kind':'p0_paths','subjects':subjects,'receipt_path':str(receipt),'receipt_sha256':digest(receipt)}),encoding='utf8')
     result=audit(project,[])
     assert result['p0_paths']['success'] and not result['evidence_complete']
+    assert {'tag_uniqueness','connections','cross_references','bom','terminals'} <= set(result['accepted'])
+    assert 'save_reopen' not in result['accepted']
     assert any(b.get('category')=='p0_binding' and 'NC50' in b['reason'] for b in result['blockers'])
     (tmp_path/'102.dwg').write_bytes(b'changed drawing')
     assert audit(project,[])['p0_paths'] is None
+    assert not audit(project,[])['accepted']
     assert 'modified project' in str(audit(project,[])['blockers'])
 
 @pytest.mark.parametrize('fault',[None,'foreign_segment','foreign_handle','extra_row','missing_membership','foreign_raw_endpoint','foreign_page'])
@@ -200,3 +203,24 @@ def test_candidate_bom_is_native_and_exact(spec,fault):
     if fault and fault!='symbol_default':
         with pytest.raises(ValueError):verify_native(p,r)
     else:assert verify_native(p,r)['routes']==4
+
+@pytest.mark.parametrize('fault',[None,'missing','different_version','bad_reopened_wire'])
+def test_v5_audit_requires_independent_reopen_snapshot(spec,tmp_path,fault):
+    import json
+    from src.tools.delta_path_acceptance import review_evidence
+    from src.autocad.engineering_archive import digest
+    p,r=native_receipt(spec)
+    snapshot=copy.deepcopy(r)
+    r.update(spec={**spec,'schema_version':5},subjects={'fixture':'hash'},status='native_readback_verified',success=True,save_reopen='verified')
+    r['independent_reopen']={'success':True,'subjects':r['subjects'],'snapshot':snapshot}
+    if fault=='missing':r.pop('independent_reopen')
+    if fault=='different_version':r['independent_reopen']['subjects']={}
+    if fault=='bad_reopened_wire':snapshot['final_wires']['module_input']['connections'].append(('FFFF','X1TERM01'))
+    source=tmp_path/'receipt.json';source.write_text(json.dumps(r),encoding='utf8')
+    data={'schema_version':1,'subjects':r['subjects'],'receipt_path':str(source),'receipt_sha256':digest(source)}
+    # Isolate the version-bound evidence check from layout planning.
+    with patch('src.tools.trebi_batch.plan',return_value=p):
+        if fault:
+            with pytest.raises((ValueError,RuntimeError)):review_evidence(data,r['subjects'])
+        else:
+            assert 'save_reopen' in review_evidence(data,r['subjects'])['verified_categories']

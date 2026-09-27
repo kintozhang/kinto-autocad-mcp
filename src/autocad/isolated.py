@@ -103,6 +103,10 @@ def isolated(function):
                     record["state"] = "not_submitted"
                     save()
                     return result
+                if function.__name__ == "execute_trebi_batch" and result.get("status") == "qualification_required" and result.get("submitted") is False:
+                    record["state"] = "not_submitted"
+                    save()
+                    return result
                 if result.get("success") is False:
                     raise OutcomeUnknown("tool_reported_failure; inspect before retry")
                 record["state"] = "completed"

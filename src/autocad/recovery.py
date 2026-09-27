@@ -11,7 +11,7 @@ def fingerprint(value):
 def probe_worker(expected_drawing_path,expected_instance_hwnd):
     proc=subprocess.run([sys.executable,'-m','src.autocad.recovery_probe'],cwd=ROOT,
         input=json.dumps({'path':expected_drawing_path,'hwnd':expected_instance_hwnd}),capture_output=True,
-        text=True,encoding='utf8',timeout=25,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
+        text=True,encoding='utf8',timeout=60,creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
     if proc.returncode:raise ValueError('Recovery read failed: '+proc.stderr[-600:])
     data=json.loads(proc.stdout)
     if not data.get('idle') or not data.get('saved'):raise ValueError('Expected drawing must be saved and CAD idle; no changes made')

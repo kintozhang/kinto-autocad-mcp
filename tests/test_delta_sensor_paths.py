@@ -66,3 +66,52 @@ def test_sensor_rejects_invalid_mapping_before_cad(sensor_spec,case):
         result=execute('C:/fixture.wdp',s,'C:/fixture.dwg')
     assert not result['success'] and not result['submitted']
     conn.assert_not_called()
+
+def test_executable_sensor_uses_shared_circuit_fragments(sensor_spec, base_spec):
+    sensor_spec['execution']={'symbol_path':base_spec['symbol_path'],'shared_loads':True}
+    p=plan(sensor_spec)
+    assert p['execution_supported'] and p['native_path_acceptance']
+    assert len(p['cable_markers'])==3
+    assert len(p['connections'])==16
+    assert len([w for w in p['connections'] if w.get('kind')=='branch'])==2
+    assert next(w for w in p['connections'] if w['id']=='module_input')['to_connection']=='X4TERM02'
+    assert next(c for c in p['components'] if c['id']=='di_dst')['y']==235
+    assert not p['production_ready']
+
+def test_sensor_pages_tags_and_channel_are_configuration(sensor_spec,base_spec):
+    sensor_spec['execution']={'symbol_path':base_spec['symbol_path'],'shared_loads':False}
+    for row,page in zip(sensor_spec['manifest']['entries'],['103','301']):
+        row.update(logical_page=page,drawing_file=page+'.dwg')
+    sensor_spec['sensor']['tag']='-103B2'
+    for r in sensor_spec['routes']:r['device']='-103B2'
+    sensor_spec['mapping']['signals'][0]['target']['channel']=2
+    p=plan(sensor_spec)
+    assert {c['drawing_page'] for c in p['components']}=={'103','301'}
+    assert next(c for c in p['components'] if c['id']=='r2')['attributes']['TAG1']=='-301A1'
+    assert next(c for c in p['components'] if c['id']=='sensor')['attributes']['TAG1']=='-103B2'
+    assert next(w for w in p['connections'] if w['id']=='module_input')['to_connection']=='X4TERM03'
+    assert not any(w.get('kind')=='branch' for w in p['connections'])
+
+@pytest.mark.parametrize('fault',['bad_asset','unsupported_channel','string_flag','extra_field'])
+def test_executable_sensor_rejects_before_cad(sensor_spec,base_spec,fault):
+    sensor_spec['execution']={'symbol_path':base_spec['symbol_path'],'shared_loads':True}
+    if fault=='bad_asset':sensor_spec['execution']['symbol_path']='C:/missing.dwg'
+    if fault=='unsupported_channel':sensor_spec['mapping']['signals'][0]['target']['channel']=15
+    if fault=='string_flag':sensor_spec['execution']['shared_loads']='true'
+    if fault=='extra_field':sensor_spec['execution']['unsafe']='ignored'
+    with patch('src.autocad.connection.get_connection') as conn:r=execute('C:/fixture.wdp',sensor_spec,'C:/fixture.dwg')
+    assert not r['success'] and not r['submitted']
+    conn.assert_not_called()
+
+@pytest.mark.parametrize('fault',['foreign_target','wrong_branch_number','cross_page','duplicate_cable_tag','duplicate_terminal','out_of_frame'])
+def test_assembled_circuit_rejects_invalid_fragments(sensor_spec,base_spec,fault):
+    from src.tools.circuit_blocks import validate_circuit
+    sensor_spec['execution']={'symbol_path':base_spec['symbol_path'],'shared_loads':True}
+    p=plan(sensor_spec);branch=next(w for w in p['connections'] if w.get('kind')=='branch')
+    if fault=='foreign_target':branch['target_wire']='module_input'
+    if fault=='wrong_branch_number':branch['wire_number']='TEST0'
+    if fault=='cross_page':next(c for c in p['components'] if c['id']=='sensor')['drawing_page']='300'
+    if fault=='duplicate_cable_tag':p['cable_markers'][0]['attributes']['TAG1']='-300A1'
+    if fault=='duplicate_terminal':next(c for c in p['components'] if c['id']=='lamp_boundary')['attributes']['TERM01']='BUTTON'
+    if fault=='out_of_frame':p['components'][0]['x']=999
+    with pytest.raises(ValueError):validate_circuit(p['components'],p['connections'],p['cable_markers'])

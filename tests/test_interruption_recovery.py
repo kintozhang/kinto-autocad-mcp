@@ -92,3 +92,36 @@ def test_mtext_reference_snapshot_detects_content_and_geometry_changes():
     assert recovery.fingerprint(first)!=recovery.fingerprint(entity_snapshot(obj))
     obj.ObjectName='AcDbHatch'
     with pytest.raises(ValueError,match='unsupported'):entity_snapshot(obj)
+
+@pytest.mark.parametrize('property,value',[('Radius',2.),('StartAngle',0.1),('EndAngle',2.),('Normal',(0,1,0)),('Thickness',1.)])
+def test_arc_recovery_tracks_geometry(property,value):
+    from types import SimpleNamespace
+    from src.autocad.recovery_probe import entity_snapshot
+    obj=SimpleNamespace(Handle='A',ObjectName='AcDbArc',Layer='WIRE',Center=(1,2,0),Radius=1.,StartAngle=0.,EndAngle=3.14,Normal=(0,0,1),Thickness=0.)
+    before=recovery.fingerprint(entity_snapshot(obj));setattr(obj,property,value)
+    assert recovery.fingerprint(entity_snapshot(obj))!=before
+
+@pytest.mark.parametrize('change',['coordinate','bulge','width','closed','elevation'])
+def test_polyline_recovery_tracks_each_segment(change):
+    from types import SimpleNamespace
+    from src.autocad.recovery_probe import entity_snapshot
+    bulges=[0.,0.];widths=[(0.,0.),(0.,0.)]
+    obj=SimpleNamespace(Handle='P',ObjectName='AcDbPolyline',Layer='WIRE',Coordinates=[0,0,1,1],Elevation=0.,Closed=False,Normal=(0,0,1),Thickness=0.,GetBulge=lambda i:bulges[i],GetWidth=lambda i:widths[i])
+    before=recovery.fingerprint(entity_snapshot(obj))
+    if change=='coordinate':obj.Coordinates[-1]=2
+    if change=='bulge':bulges[0]=0.5
+    if change=='width':widths[0]=(1.,2.)
+    if change=='closed':obj.Closed=True
+    if change=='elevation':obj.Elevation=1.
+    assert recovery.fingerprint(entity_snapshot(obj))!=before
+
+@pytest.mark.parametrize('submitted',[False,True,'unknown'])
+def test_planning_only_batch_rejection_does_not_quarantine_unless_submitted(tmp_path,submitted):
+    def execute_trebi_batch():pass
+    result={'success':False,'status':'qualification_required','submitted':submitted}
+    with patch('src.autocad.isolated.gate_path',return_value=tmp_path/'session.lock'),patch('src.autocad.client_gate.gate_path',return_value=tmp_path/'session.lock'),patch('src.autocad.isolated.run_worker',return_value=result):
+        reply=isolated(execute_trebi_batch)()
+        if submitted is False:
+            assert reply==result and diagnose()['marker'] is None
+        else:
+            assert reply['status']=='outcome_unknown' and diagnose()['marker']

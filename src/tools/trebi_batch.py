@@ -174,6 +174,8 @@ def execute(project_path,spec,drawing_path):
         state=guard(conn,str(project))
         if [str(Path(p).resolve()).casefold() for p in state['drawings']]!=list(bound): raise ValueError('Project membership/order differs from manifest')
         docs=read_call(lambda:{str(Path(d.FullName).resolve()).casefold():d for d in app.Documents if d.FullName},label='open drawing metadata snapshot')
+        from src.tools.circuit_blocks import validate_open_names
+        validate_open_names(docs, bound)
         blank_attributes={}
         for filename,row in bound.items():
             doc=docs.get(filename)
@@ -235,10 +237,10 @@ def execute(project_path,spec,drawing_path):
         for sheet,path in by_page.items():
             step('activate:'+sheet,lambda:activate(path) and None)
             existing=blank_attributes[path]
-            if spec.get('schema_version')==4 and all(existing['WD_M'].get(k)==v for k,v in settings(sheet).items()):
+            if spec.get('schema_version') in (4,5) and all(existing['WD_M'].get(k)==v for k,v in settings(sheet).items()):
                 report['settings'][sheet]=step('grid:'+sheet,lambda:{'success':True,'status':'existing_exact_settings_verified'})
             else:report['settings'][sheet]=step('grid:'+sheet,lambda:configure(conn,path,sheet))
-            if spec.get('schema_version')==4 and all(existing[profile()['block_name']].get(k)==v for k,v in bound[path]['title_fields'].items()):
+            if spec.get('schema_version') in (4,5) and all(existing[profile()['block_name']].get(k)==v for k,v in bound[path]['title_fields'].items()):
                 report['titles'][sheet]=step('title:'+sheet,lambda:{'success':True,'status':'existing_exact_title_verified'})
             else:report['titles'][sheet]=step('title:'+sheet,lambda:apply_title(conn,project,spec['manifest'],path))
             step('save:'+sheet,save_active)
@@ -257,7 +259,16 @@ def execute(project_path,spec,drawing_path):
         for link in recipe['connections']:
             a=report['entities'][link['from_id']];b=report['entities'][link['to_id']]
             step('activate:'+link['id'],lambda:activate(a['drawing']) and None)
-            wire=step('wire:'+link['id'],lambda:connect_terminals(a['handle'],link['from_connection'],b['handle'],link['to_connection'],wire_layer=link.get('wire_layer','MCP_WIRE')))
+            if link.get('kind')=='branch':
+                from src.tools.native_branch import branch
+                def add_branch():
+                    from src.tools.circuit_blocks import select_branch_segment
+                    snapshots=[inspect_wire(h) for h in report['wires'][link['target_wire']]['wire_handles']]
+                    target=select_branch_segment(snapshots,link['tap'])
+                    return branch(a['handle'],link['from_connection'],target,*link['tap'])
+                wire=step('branch:'+link['id'],add_branch)
+            else:
+                wire=step('wire:'+link['id'],lambda:connect_terminals(a['handle'],link['from_connection'],b['handle'],link['to_connection'],wire_layer=link.get('wire_layer','MCP_WIRE')))
             report['wires'][link['id']]=wire;persist()
             if link.get('wire_number'): step('number:'+link['id'],lambda:set_number(wire['wire_handles'][0],link['wire_number']))
         for c in recipe.get('cable_markers',[]):
@@ -274,7 +285,7 @@ def execute(project_path,spec,drawing_path):
         if recipe.get('cable_markers') or any(c['role']=='child' for c in recipe['components']): step('parent_child_references',lambda:update(str(project)))
         for sheet,path in by_page.items():
             step('activate:'+sheet,lambda:activate(path) and None)
-            if spec.get('schema_version')==4:
+            if spec.get('schema_version') in (4,5):
                 from src.tools.native_electrical import _points
                 def inventory_snapshot():
                     inventory=[]
@@ -289,7 +300,7 @@ def execute(project_path,spec,drawing_path):
                 attrs=read_call(lambda:get_block_attributes(conn.get_active_document().HandleToObject(report['entities'][c['id']]['handle'])))
                 if any(attrs.get(k)!=v for k,v in c['attributes'].items()): raise RuntimeError('Final component attribute mismatch: '+c['id'])
                 report['references'][c['id']]=attrs
-                if spec.get('schema_version')==4:
+                if spec.get('schema_version') in (4,5):
                     report['entities'][c['id']]['connection_points']=read_call(lambda:_points(conn.get_active_document().HandleToObject(report['entities'][c['id']]['handle'])))
             for ref in recipe['expected_references']:
                 if ref['id'] in report['references'] and report['references'][ref['id']].get(ref['field'])!=ref['value']: raise RuntimeError('Exact reference mismatch: '+str(ref))
@@ -305,7 +316,7 @@ def execute(project_path,spec,drawing_path):
                         number=next((w['wire_number'] for w in recipe['connections'] if w.get('wire_number') and partners.intersection({w['from_id'],w['to_id']})),None)
                 # Parametric P/J endpoints can be omitted by wd_get_wire_netlst.
                 # These paths require the handle-bound native From/To check below.
-                if spec.get('schema_version')==4 and {'socket','plug'}.intersection({link['from_id'],link['to_id']}):
+                if spec.get('schema_version')==5 or (spec.get('schema_version')==4 and {'socket','plug'}.intersection({link['from_id'],link['to_id']})):
                     step('defer_report_endpoint_check:'+link['id'],lambda:{'success':True,'status':'pending_native_from_to'})
                 else:
                     step('verify_wire:'+link['id'],lambda:verify_wire_readback(link,report['entities'],result,number))
@@ -313,16 +324,19 @@ def execute(project_path,spec,drawing_path):
             step('save:'+sheet,save_active)
         for kind in ['bom','from_to','terminal_plan','terminal_numbers']:
             report['reports'][kind]=step('report:'+kind,lambda:export_report(str(project),kind,str(folder/(kind+'.csv'))))
-        if spec.get('schema_version')==4:
+        if spec.get('schema_version') in (4,5):
             from src.tools.delta_path_acceptance import verify_native
             report['p0_native']=step('verify_full_paths',lambda:verify_native(recipe,report))
+        if spec.get('schema_version')==5:
+            from src.tools.batch_reopen import verify as verify_reopened
+            report['independent_reopen']=step('verify_saved_reopen',lambda:verify_reopened(conn,app,recipe,report,folder/'reopen',docs,activate,step))
         step('restore_original',lambda:activate(original) and None)
         report['subjects']={str(Path(p).resolve()):digest(Path(p)) for p in [str(project),*state['drawings']]}
-        report.update(success=True,status='native_readback_verified',save_reopen='pending_independent_verification')
+        report.update(success=True,status='native_readback_verified',save_reopen='verified' if report.get('independent_reopen',{}).get('success') else 'pending_independent_verification')
     except Exception as exc:
         report.update(status='partial_or_unknown',error=str(exc),automatic_retry=False)
     finally: persist()
-    if report['success'] and spec.get('schema_version')==4:
+    if report['success'] and spec.get('schema_version') in (4,5):
         evidence={'schema_version':1,'kind':'p0_paths','subjects':report['subjects'],'receipt_path':str(receipt),'receipt_sha256':digest(receipt)}
         project.with_suffix('.p0.json').write_text(json.dumps(evidence,indent=2),encoding='utf8')
     return report

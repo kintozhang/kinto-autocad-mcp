@@ -148,3 +148,5 @@ Claude Code/Claude Desktop 的接入步骤见 [Claude 接入](docs/claude-setup.
 
 
 2026-09-27：[三线传感器路径预检](docs/sensor-path-preflight.md)接入默认批量规划v5；仅预检，完整原生绘图配方未验收，执行入口保持阻断。
+
+2026-09-27：[三线传感器批量与回路模块](docs/sensor-path-preflight.md)v5带execution时可执行：按钮/灯/传感器器件工厂、连接器/电缆模块、供电/0V分支、跨页信号路径验收，以及自动保存重开复核。独立工程D完整通过（175步、16连接/14网络、R2 TB2:X02、四报表、重开、两页PDF）；A/B/C失败或部分回执保留不重放。audit 7/10类归入，硬件/I/O映射/工程审核仍阻断。648项测试通过。
