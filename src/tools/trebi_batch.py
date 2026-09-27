@@ -219,9 +219,9 @@ def execute(project_path,spec,drawing_path):
         return doc
     by_page={row['logical_page']:filename for filename,row in bound.items()}
     def save_active():
-        doc=conn.get_active_document(); doc=wait_for_document(app,doc.FullName)
+        doc=conn.get_active_document(); name=read_call(lambda:doc.FullName);doc=wait_for_document(app,name)
         if not read_call(lambda:bool(doc.Saved)):read_call(lambda:doc.Save)()
-        wait_for_document(app,doc.FullName)
+        wait_for_document(app,name)
         if not read_call(lambda:bool(doc.Saved)): raise RuntimeError('Save not confirmed')
         return {'success':True}
     try:
@@ -269,19 +269,21 @@ def execute(project_path,spec,drawing_path):
             step('activate:'+sheet,lambda:activate(path) and None)
             if spec.get('schema_version')==4:
                 from src.tools.native_electrical import _points
-                inventory=[]
-                for obj in conn.get_active_document().ModelSpace:
-                    if obj.ObjectName!='AcDbBlockReference' or not obj.HasAttributes:continue
-                    a=get_block_attributes(obj)
-                    if any(a.get(k) for k in ('TAG1','TAG2','TAGSTRIP')):inventory.append({'handle':obj.Handle,'attributes':a})
-                report['device_inventory'][sheet]=inventory
+                def inventory_snapshot():
+                    inventory=[]
+                    for obj in conn.get_active_document().ModelSpace:
+                        if obj.ObjectName!='AcDbBlockReference' or not obj.HasAttributes:continue
+                        a=get_block_attributes(obj)
+                        if any(a.get(k) for k in ('TAG1','TAG2','TAGSTRIP')):inventory.append({'handle':obj.Handle,'attributes':a})
+                    return inventory
+                report['device_inventory'][sheet]=read_call(inventory_snapshot,label='complete tagged device inventory')
             for c in recipe['components'] + recipe.get('cable_markers',[]):
                 if c['drawing_page']!=sheet: continue
-                attrs=get_block_attributes(conn.get_active_document().HandleToObject(report['entities'][c['id']]['handle']))
+                attrs=read_call(lambda:get_block_attributes(conn.get_active_document().HandleToObject(report['entities'][c['id']]['handle'])))
                 if any(attrs.get(k)!=v for k,v in c['attributes'].items()): raise RuntimeError('Final component attribute mismatch: '+c['id'])
                 report['references'][c['id']]=attrs
                 if spec.get('schema_version')==4:
-                    report['entities'][c['id']]['connection_points']=_points(conn.get_active_document().HandleToObject(report['entities'][c['id']]['handle']))
+                    report['entities'][c['id']]['connection_points']=read_call(lambda:_points(conn.get_active_document().HandleToObject(report['entities'][c['id']]['handle'])))
             for ref in recipe['expected_references']:
                 if ref['id'] in report['references'] and report['references'][ref['id']].get(ref['field'])!=ref['value']: raise RuntimeError('Exact reference mismatch: '+str(ref))
             for link in recipe['connections']:

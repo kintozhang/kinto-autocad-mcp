@@ -73,12 +73,12 @@ def insert_connector_half(x,y,side,pins,attributes):
         params[1]=1;params[3]=1;params[9]=40.
         if set(attributes)!={'TAG1','MFG','CAT','DESC1'}:raise ValueError('Controlled connector attributes required')
         for value in attributes.values():literal(value)
-        conn=get_connection();doc=conn.get_active_document();before={e.Handle for e in doc.ModelSpace}
+        conn=get_connection();doc=conn.get_active_document();before=read_call(lambda:{e.Handle for e in doc.ModelSpace})
         handles=evaluate(conn,"(progn (c:ace_gbl_wd_m 1) (mapcar '(lambda (e) (cdr (assoc 5 (entget e)))) (c:ace_ins_parametric_connector "+literal([x,y,0])+' 1.0 '+literal(params)+')))',timeout=75)
         if not isinstance(handles,list) or len(handles)!=1 or handles[0] in before:raise RuntimeError('Native connector did not return one new block')
         created=handles[0]
         from src.autocad.com_runtime import wait_for_document
-        wait_for_document(conn.get_application(),doc.FullName)
+        wait_for_document(conn.get_application(),read_call(lambda:doc.FullName))
         obj=read_call(lambda:doc.HandleToObject(created))
         for key,value in attributes.items():
             if evaluate(conn,'(c:wd_modattrval '+entity(created)+' '+literal(key)+' '+literal(value)+' nil)')!=1:raise RuntimeError('Connector attribute update failed: '+key)
@@ -87,6 +87,6 @@ def insert_connector_half(x,y,side,pins,attributes):
         expected={f'{prefix}TERM{i+1:02d}{suffix}':pin for i,pin in enumerate(pins)}
         if len(points)!=len(pins) or {p['connection']:p['terminal'] for p in points}!=expected:raise RuntimeError('Connector pin readback mismatch')
         if any(actual.get(k)!=v for k,v in attributes.items()):raise RuntimeError('Connector identity readback mismatch')
-        return {'success':True,'handle':created,'block':obj.Name,'attributes':actual,'connection_points':points,'api':'c:ace_ins_parametric_connector','side':side}
+        return {'success':True,'handle':created,'block':read_call(lambda:obj.Name),'attributes':actual,'connection_points':points,'api':'c:ace_ins_parametric_connector','side':side}
     except Exception as exc:
         return {'success':False,'created_handle':created,'error':str(exc),'automatic_retry':False}

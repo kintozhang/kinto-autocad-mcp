@@ -4,6 +4,7 @@ import re
 from src.autocad.connection import get_connection
 from src.autocad.lisp_bridge import evaluate, literal, BridgeError
 from src.autocad.utils import get_block_attributes
+from src.autocad.com_runtime import read_call, wait_for_document
 
 HANDLE = re.compile(r"^[0-9A-Fa-f]+$")
 CONNECTION = re.compile(r"^X[01248]TERM([0-9]{2}[PJ]?)$")
@@ -12,8 +13,8 @@ CONNECTION = re.compile(r"^X[01248]TERM([0-9]{2}[PJ]?)$")
 def connection():
     conn = get_connection()
     doc = conn.get_active_document()
-    if not any(o.ObjectName == "AcDbBlockReference" and o.Name.upper() == "WD_M"
-               for o in doc.ModelSpace):
+    if not read_call(lambda:any(o.ObjectName == "AcDbBlockReference" and o.Name.upper() == "WD_M"
+               for o in doc.ModelSpace),label="Electrical drawing marker scan"):
         raise BridgeError("Drawing needs a WD_M insert from a verified Electrical template")
     return conn, doc
 
@@ -41,7 +42,7 @@ def insert_symbol(symbol_name, x, y, rotation=0, attributes=None):
         if rotation != 0:
             raise ValueError("Use the correct horizontal/vertical library symbol; rotation is not supported yet")
         conn, doc = connection()
-        before = {o.Handle for o in doc.ModelSpace}
+        before = read_call(lambda:{o.Handle for o in doc.ModelSpace})
         # ACE_API 2026: bit 4 suppresses auto-tag generation. Otherwise an explicit
         # TAG1 can disagree with the automatically generated VIA_WD_BASETAG.
         options = 6 if any(k.upper() in {"TAG1", "TAGSTRIP"} for k in requested) else 2
@@ -50,8 +51,7 @@ def insert_symbol(symbol_name, x, y, rotation=0, attributes=None):
         if not isinstance(handle,str) or handle in before:
             raise BridgeError("Native insertion did not return a new entity handle")
         created = handle
-        from src.autocad.com_runtime import read_call,wait_for_document
-        wait_for_document(conn.get_application(),doc.FullName)
+        wait_for_document(conn.get_application(),read_call(lambda:doc.FullName))
         obj = read_call(lambda:doc.HandleToObject(handle))
         if read_call(lambda:obj.ObjectName) != "AcDbBlockReference":
             raise BridgeError("Native insertion returned a non-block")
@@ -111,6 +111,10 @@ def network(conn, wire_handle):
 
 def existing_connection(conn, doc, start, expected, layers):
     """Inspect only native wires meeting this exact component connection point."""
+    return read_call(lambda:_existing_connection_once(conn,doc,start,expected,layers),label="existing wire scan")
+
+
+def _existing_connection_once(conn,doc,start,expected,layers):
     for obj in doc.ModelSpace:
         if obj.ObjectName != "AcDbLine" or obj.Layer not in layers:
             continue
@@ -123,7 +127,7 @@ def existing_connection(conn, doc, start, expected, layers):
 
 
 def connect_terminals(from_handle, from_connection, to_handle, to_connection, wire_layer="MCP_WIRE"):
-    handles = []
+    handles = [];phase="preflight_read";write_attempted=False
     try:
         if not wire_layer.strip():
             raise ValueError("Wire layer cannot be empty")
@@ -131,7 +135,7 @@ def connect_terminals(from_handle, from_connection, to_handle, to_connection, wi
         conn,doc = connection()
         def point(handle, tag):
             entity(handle)
-            matches = [p for p in _points(doc.HandleToObject(handle)) if p["connection"]==tag]
+            matches = read_call(lambda:[p for p in _points(doc.HandleToObject(handle)) if p["connection"]==tag])
             if len(matches)!=1:
                 raise ValueError("Connection attribute not found: "+tag)
             return matches[0]["position"]
@@ -147,6 +151,7 @@ def connect_terminals(from_handle, from_connection, to_handle, to_connection, wi
             return {"success":True,"status":"already_connected","changed":False,
                     "created_wire_handles":[],"start":start,"end":end,**existing}
         if wire_layer not in layers:
+            phase="create_wire_type";write_attempted=True
             result=evaluate(conn,"(c:ace_new_wiretype "+literal(wire_layer)+" nil nil)")
             if result!=wire_layer:
                 raise BridgeError("Native wire type creation failed")
@@ -156,20 +161,22 @@ def connect_terminals(from_handle, from_connection, to_handle, to_connection, wi
         route_start, route_end = start, end
         reversed_route = False
         if options == 4:
-            from_attrs = get_block_attributes(doc.HandleToObject(from_handle))
-            to_attrs = get_block_attributes(doc.HandleToObject(to_handle))
+            from_attrs = read_call(lambda:get_block_attributes(doc.HandleToObject(from_handle)))
+            to_attrs = read_call(lambda:get_block_attributes(doc.HandleToObject(to_handle)))
             # 2026 can append a terminal self-loop when auto-routing ends there.
             # The controlled offset fixture passed when routed from the terminal.
             if to_attrs.get("TAGSTRIP") and not from_attrs.get("TAGSTRIP"):
                 route_start, route_end = end, start
                 reversed_route = True
+        phase="insert_wire";write_attempted=True
         handles=evaluate(conn,"(c:ace_insert_wire (list "+literal(route_start)+" "+literal(route_end)+" "+
                          literal(wire_layer)+" " + str(options) + "))")
         if not handles:
             raise BridgeError("No wire handles returned")
+        phase="postflight_read"
         for handle in handles:
-            obj=doc.HandleToObject(handle)
-            if obj.ObjectName!="AcDbLine" or obj.Layer!=wire_layer:
+            kind,layer=read_call(lambda:(doc.HandleToObject(handle).ObjectName,doc.HandleToObject(handle).Layer))
+            if kind!="AcDbLine" or layer!=wire_layer:
                 raise BridgeError("Wire object readback mismatch")
         networks = [network(conn, handle) for handle in handles]
         nodes = networks[0]
@@ -183,7 +190,7 @@ def connect_terminals(from_handle, from_connection, to_handle, to_connection, wi
                 "connections":nodes,"start":start,"end":end,"wire_layer":wire_layer,
                 "native_options":options,"native_route_reversed":reversed_route}
     except Exception as exc:
-        return failure(exc, created_wire_handles=handles)
+        return failure(exc, created_wire_handles=handles,phase=phase,write_attempted=write_attempted)
 
 
 def set_number(wire_handle, number):
@@ -191,12 +198,13 @@ def set_number(wire_handle, number):
         if not number.strip():
             raise ValueError("Wire number cannot be empty")
         conn,doc=connection()
-        if doc.HandleToObject(wire_handle).ObjectName!="AcDbLine":
+        kind,layer=read_call(lambda:(doc.HandleToObject(wire_handle).ObjectName,doc.HandleToObject(wire_handle).Layer))
+        if kind!="AcDbLine":
             raise ValueError("Expected a wire LINE")
         wire=entity(wire_handle)
         literal(number)
         layers = evaluate(conn, "(c:ace_get_wiretype_list nil)") or []
-        if doc.HandleToObject(wire_handle).Layer not in layers:
+        if layer not in layers:
             raise ValueError("LINE is not on a registered Electrical wire layer")
         evaluate(conn,"(progn (c:wd_putwn "+wire+" "+literal(number)+") T)")
         result = inspect_wire(wire_handle)
