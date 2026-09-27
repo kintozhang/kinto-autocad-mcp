@@ -469,10 +469,10 @@
     "plan_delta_r2_io": {
       "status": "offline_and_stdio_verified",
       "default_enabled": true,
-      "scope": "Read-only R2-EC0902 family channel/common/PDO-group draft; no CAD contact; v3 complete 76-terminal unbound inventory (read-only)",
+      "scope": "Read-only R2-EC0902 family channel/common/PDO-group draft; no CAD contact; v3 complete 76-terminal unbound inventory (read-only); v4 manual-derived NC50 EIO test assumptions, address bounds/overlap/update checks without promoting observations",
       "replacement": null,
       "issue": "Physical Revision/station and NC50 addresses/PDO observations pending; R2 is remote I/O, NC50 owns PLC logic",
-      "evidence": "docs/delta-io-planning.md"
+      "evidence": "docs/nc50-test-mapping.md"
     },
     "execute_trebi_test_change": {
       "status": "live_synthetic_verified",
