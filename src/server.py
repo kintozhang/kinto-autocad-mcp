@@ -876,6 +876,7 @@ def get_execution_diagnostics() -> dict[str, Any]:
 def plan_trebi_batch(spec: dict[str, Any]) -> dict[str, Any]:
     """Plan bounded TREBI logical pages, inherited tags and exact references without CAD.
 
+    Version 5 preflights test-only three-wire sensor paths; execution is not qualified.
     Does not scan existing drawings or select replacement catalog parts.
     """
     from src.tools.trebi_batch import plan
@@ -889,6 +890,7 @@ def plan_trebi_batch(spec: dict[str, Any]) -> dict[str, Any]:
 def execute_trebi_batch(project_path: str, spec: dict[str, Any], drawing_path: str) -> dict[str, Any]:
     """Execute TREBI v1, Delta test_only v2 (one page) v3 (three DI/DO pages) or v4 (split connector/cable paths).
 
+    Version 5 sensor paths are planning-only and are rejected before batch writes.
     All pages must be open/saved, WDT and LINE20 must match manifest. Applies
     grid/title rules, inserts relay/NO contact/terminals/signal arrows, connects
     v1 horizontal wires or fixed v2 Delta wiring, numbers, references and reports.

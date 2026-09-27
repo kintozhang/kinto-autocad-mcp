@@ -19,6 +19,9 @@ SYMBOLS = {'primary': ('HCR1', {'X4TERM01','X1TERM02'}),
            'destination': ('HA1D3', {'X1TERM01'})}
 
 def plan(spec):
+    if isinstance(spec, dict) and spec.get("schema_version") == 5:
+        from src.tools.delta_sensor_paths import plan as sensor_plan
+        return sensor_plan(spec)
     if isinstance(spec, dict) and spec.get("schema_version") == 4:
         from src.tools.delta_full_paths import plan as full_path_plan
         return full_path_plan(spec)
@@ -155,7 +158,11 @@ def execute(project_path,spec,drawing_path):
     from src.tools.native_electrical import insert_symbol,connect_terminals,set_number,inspect_wire
     # No CAD mutations (including activation) before structural/file preflight.
     try:
-        recipe=plan(spec); project=Path(project_path); original=Path(drawing_path)
+        recipe=plan(spec)
+        if recipe.get("execution_supported") is False:
+            return {"success":False,"status":"qualification_required","submitted":False,
+                    "error":"Sensor full-path native batch qualification pending; planning only", "plan":recipe}
+        project=Path(project_path); original=Path(drawing_path)
         if not project.is_absolute() or project.suffix.lower()!='.wdp' or not original.is_absolute(): raise ValueError('Absolute project/DWG paths required')
         bound,_=binding(spec['manifest'],project,original)
         if project.with_suffix('.wdt').read_text(encoding='utf8')!=WDT.read_text(encoding='utf8'): raise ValueError('Unverified WDT mapping')

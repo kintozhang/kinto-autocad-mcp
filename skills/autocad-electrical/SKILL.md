@@ -65,3 +65,6 @@ NC50离线测试可用plan_delta_r2_io v4，见[测试映射](../../docs/nc50-te
 
 
 候选地址图面验证：四路径批量可选eio_assumptions，将NC50候选写入按钮/灯DESC2及R2描述，必须带TEST/NOT VERIFIED；原线号/端子/信号字段不替换。验收同时按对象句柄检查BOM描述，并做独立重开与PDF视觉核验。创建工具结束会恢复原图与原项目，调用批量前须同时确认新DWG和新Electrical项目已激活，不能只切换图纸。
+
+
+三线传感器：默认plan_trebi_batch v5仅做[路径预检](../../docs/sensor-path-preflight.md)。不要对其调用执行并期望出图；当前会返回qualification_required。完整I546连接器/芯线/R2及共享负载原生验收尚未完成。
