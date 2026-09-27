@@ -20,7 +20,7 @@ binding包含controller=NC50E-FE、protocol=EtherCAT、ss_potential=TEST_0V、ou
 
 ## 验收状态
 
-离线约束与故障注入测试已通过。本机完整两页验收正在执行；最终结果另行记录，不能用探针插入或离线测试推断完整通过。
+R7完整默认MCP批次、独立保存重开、四类原生报表和两页PDF检查通过。539项离线回归通过，3项integration排除；离线测试不能替代实机证据。实物/NC50绑定和工程审核仍阻断正式出图。
 
 ## 中断原则
 
@@ -41,3 +41,12 @@ R6在S/S接线步骤遇到COM读取中断，现场已另存，不据空created_w
 
 
 PDF衔接补充：新建DWT的修订、签署等草稿字段可为空。仅synthetic_trebi_a3导出允许明确列举的十项元数据留空，并返回draft_title_metadata_pending；不伪造签署、修订或客户信息，图面保留测试水印。BRAND、PAGE、OF、PREV、NEXT及所有字段的类型/长度仍校验，普通标题校验默认保持严格。打开打印副本后重新取得就绪的文档对象；对已识别的GetAttributes.TagString/TextString元数据短暂未就绪做有限只读重读，其他AttributeError不吞掉。电缆引用MText的恢复探针也已补齐。539项回归通过；完整PDF结果以最终证据为准。
+
+
+## 最终独立样板 R7
+
+工程：`C:\kinto\CAD_Projects\TREBI_Localization\electrical\poc\P0-PATHS-R7-20260927`。代码绘图版本c466348、PDF导出版本a259203；仅测试普通控制四路径。18个元件/箭头加4个电缆标记，17组线网，76个R2接点，插头与插座各4针。原生报表行数：{"bom": 6, "from_to": 15, "terminal_plan": 9, "terminal_numbers": 9}。保存关闭重开后，四类报表逐行多重集一致，源WDP/DWG哈希未变化；PDF保留逻辑PAGE102/300与OF2，PDF含6个内部链接、2个书签、0个SHX文字批注；两页均完成视觉检查。10种修订/客户/签字等草稿字段仍为空，不代表已签发。
+
+证据统一放在工程evidence/、reports/和exports/；同名.p0.json指向该目录的batch-receipt.json，不依赖代码目录work/的临时回执。audit_cad_project自动重算P0路径证据；七类自动/视觉证据归档，硬件身份、完整I/O绑定与工程审核仍待补齐，production_ready/formal_export_allowed均为false。
+
+这不是全TREBI项目、NC50程序逻辑或安全回路验收；没有冻结真实通道分配。R1-R6失败记录保留，不能把R7成功解释为COM永不失败。客户端重新启动MCP后加载当前代码；默认工具仍33项、全部定义73项，本轮扩展既有批量入口。
