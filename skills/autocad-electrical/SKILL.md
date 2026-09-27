@@ -47,3 +47,6 @@ TREBI PDF导航：synthetic_trebi_a3默认按原生信号XREF及标题PREV/NEXT�
 按[扩展验收](../../docs/extended-electrical-acceptance.md)区分样板与正式能力。实验连接器仅为合并P/J；实验PLC固定AB 1771-IAD，不是Delta。电缆号、芯号、针脚、PLC地址分栏回读。双网络端点隔离不代表实际安全双通道认证或功能通过。
 
 标准MCP中断先诊断，再调用recover_cad_interruption的inspect，核对操作记录、已执行对象、DWG和实例；只有快照与预期一致才用同一operation_id/snapshot_id执行release。工具不会重放、保存或撤销；未保存/复杂实体现场被拒绝时保持隔离。禁止为通过恢复擅自保存用户未知改动。两步细则见[恢复说明](../../docs/interruption-recovery.md)。
+
+
+R2-EC0902D0按EtherCAT远程I/O建模，NC50E-FE内置PLC拥有控制逻辑。可以使用已验证智能元件，不将缺少PLC目录条目视作必须重建PLC模块的理由。默认plan_delta_r2_io v3给出76个I/O/电源端点及既有符号接线属性；EtherCAT通信接口、站序及NC50程序地址单独记录。既有块76点回读一致不等于完整外接回路验收。

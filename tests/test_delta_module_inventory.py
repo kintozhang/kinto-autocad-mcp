@@ -34,3 +34,27 @@ def test_commons_and_duplicate_labels_remain_distinct():
 def test_inventory_rejects_unsafe_or_extra_bindings(change):
     with pytest.raises(ValueError):
         plan({"schema_version":3, "purpose":"test_only", "module_id":"IO_TEST", **change})
+
+
+def test_remote_io_is_not_logic_controller_or_ethercat_pin_mapping():
+    d=inventory()
+    assert d["device_role"] == "ethercat_remote_io" and d["executes_plc_program"] is False
+    assert d["intended_controller"] == "NC50E-FE" and d["logic_owner"] == "controller_internal_plc"
+    assert d["communication"]["protocol"] == "EtherCAT"
+    assert d["communication"]["physical_ports"] is None
+    assert not d["communication"]["topology_verified"]
+
+
+def test_smart_symbol_identity_mapping_covers_actual_attribute_convention():
+    from src.tools.delta_module_inventory import expected_smart_symbol_connections
+    from src.tools.delta_batch import verify_insert
+    m=expected_smart_symbol_connections()
+    assert len(m)==76
+    assert m["X4TERM01"]=="TB2:X00" and m["X4TERM17"]=="TB3:X00"
+    assert m["X1TERM33"]=="TB4:Y00" and m["X1TERM49"]=="TB5:Y00"
+    assert m["X4TERM65"]=="TB4:C0" and m["X1TERM72"]=="TB5:C7"
+    assert m["X8TERM76"]=="TB3:S/S"
+    assert verify_insert({"connection_points":[{"connection":k,"terminal":v} for k,v in m.items()]})["success"]
+    points=[{"connection":k,"terminal":v} for k,v in m.items()]
+    points[0]["terminal"]="TB3:X00"
+    with pytest.raises(RuntimeError):verify_insert({"connection_points":points})

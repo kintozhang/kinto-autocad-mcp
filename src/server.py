@@ -896,7 +896,8 @@ def execute_trebi_batch(project_path: str, spec: dict[str, Any], drawing_path: s
 
 @registered_tool()
 def plan_delta_r2_io(spec: dict[str, Any]) -> dict[str, Any]:
-    """Read-only R2-EC0902 family port/common/PDO-group draft with source pages.
+    """Read-only R2-EC0902 EtherCAT remote I/O port/common/PDO draft with source pages.
+    PLC logic belongs to the NC50 controller, not R2. Communication ports are separate from discrete I/O.
 
     Version 3 returns the full 76-terminal inventory: schema_version=3, purpose=test_only, module_id.
     Version 1 plans manual-based channels. Version 2 reads a hash-pinned local ESI,

@@ -45,16 +45,12 @@ def plan(spec):
         wire(f"module_{n}","r2",f"X8TERM{pin}",f"t{n}","X2TERM01",number,layer)
     return dict(success=True,submitted=False,pages=pages,component_plan={"components":[{"id":"r2","tag":f"-{sheet}A1"},{"id":"lamp","tag":f"-{sheet}H1"}]},
         components=components,connections=connections,expected_references=[],scope="delta_r2_output_poc_test_only",production_ready=False,
-        limitations=["External power boundary terminals only", "Hardware revision, NC50 address and original terminals unconfirmed", "Test lamp and pins, no production selection", "Generic smart black box, not parametric PLC"])
+        limitations=["External power boundary terminals only", "Hardware revision, NC50 address and original terminals unconfirmed", "Test lamp and pins, no production selection", "Electrical smart remote I/O test symbol; EtherCAT topology and NC50 program not verified"])
 
 def verify_insert(result):
     points=result.get("connection_points",[])
     actual={p["connection"]:p["terminal"] for p in points}
-    expected={}
-    for port in range(4):
-        for ch in range(16):
-            expected[f"X{4 if port<2 else 1}TERM{port*16+ch+1:02d}"]=f"TB{port+2}:{'X' if port<2 else 'Y'}{ch:02d}"
-    for group in range(8): expected[f"X{4 if group<4 else 1}TERM{65+group}"]=f"TB{4 if group<4 else 5}:C{group}"
-    for n,name in [(73,"TB1:24V"),(74,"TB1:GND"),(75,"TB1:FG"),(76,"TB3:S/S")]: expected[f"X8TERM{n}"]=name
+    from src.tools.delta_module_inventory import expected_smart_symbol_connections
+    expected=expected_smart_symbol_connections()
     if len(points)!=76 or actual!=expected: raise RuntimeError("Inserted R2 terminal inventory differs from verified asset")
     return {"success":True,"connection_points":76}
