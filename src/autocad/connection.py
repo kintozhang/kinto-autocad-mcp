@@ -170,7 +170,9 @@ class AutoCADConnection:
         if not cmd.endswith((" ", "\n", "\r")):
             cmd += " "
         try:
-            doc.SendCommand(cmd)
+            from src.autocad.com_runtime import read_call
+            send=read_call(lambda:doc.SendCommand,label="SendCommand method lookup")
+            send(cmd)  # Submit exactly once; never retry a rejected write.
             logger.debug("SendCommand: %r", cmd)
         except Exception as exc:
             raise AutoCADConnectionError(

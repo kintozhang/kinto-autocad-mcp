@@ -7,7 +7,7 @@ import re
 import threading
 import time
 import uuid
-from src.autocad.com_runtime import read_document_name
+from src.autocad.com_runtime import read_document_name, read_call, wait_for_document
 
 _LOCK = threading.RLock()
 ROOT = Path(__file__).resolve().parents[2]
@@ -76,11 +76,12 @@ def evaluate(conn, expression, timeout=15):
     """
     with _LOCK:
         doc = conn.get_active_document()
-        name = doc.FullName
+        name = read_call(lambda:doc.FullName)
         if not name:
             raise BridgeError("Save the test drawing before using Electrical APIs")
-        if int(doc.GetVariable("CMDACTIVE")):
+        if int(read_call(lambda:doc.GetVariable("CMDACTIVE"))):
             raise BridgeError("A CAD command is active; inspect it before continuing")
+        wait_for_document(conn.get_application(),name)
         folder = ROOT / "work" / "bridge"
         folder.mkdir(parents=True, exist_ok=True)
         operation = uuid.uuid4().hex
@@ -127,6 +128,7 @@ def evaluate(conn, expression, timeout=15):
                     raise BridgeError(f"CAD API error [{operation}]: {value}")
                 if read_document_name(conn.get_active_document) != name:
                     raise BridgeError(f"Document changed after operation [{operation}]; inspect before retry")
+                wait_for_document(conn.get_application(),name)
                 return value
             time.sleep(.05)
         raise BridgeError(f"Completion unknown [{operation}]; inspect CAD and receipt before retrying")

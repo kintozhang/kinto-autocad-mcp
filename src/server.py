@@ -748,7 +748,12 @@ def set_electrical_wire_number(wire_handle: str, number: str) -> dict[str, Any]:
 
 @registered_tool()
 def get_electrical_wire(wire_handle: str) -> dict[str, Any]:
-    """Read native wire number, terminal network and line geometry without writing."""
+    """Read native wire number, raw endpoints, network wire handles and geometry.
+
+    Parametric P/J endpoints can be omitted by the native netlist API; success
+    means the read completed, not that connectivity passed. TREBI v4 additionally
+    verifies connector paths against handle-bound native From/To reports.
+    """
     from src.tools.native_electrical import inspect_wire
     return inspect_wire(wire_handle)
 
@@ -882,7 +887,7 @@ def plan_trebi_batch(spec: dict[str, Any]) -> dict[str, Any]:
 
 @registered_tool()
 def execute_trebi_batch(project_path: str, spec: dict[str, Any], drawing_path: str) -> dict[str, Any]:
-    """Execute TREBI v1, Delta test_only v2 (one page) or v3 (three DI/DO pages).
+    """Execute TREBI v1, Delta test_only v2 (one page) v3 (three DI/DO pages) or v4 (split connector/cable paths).
 
     All pages must be open/saved, WDT and LINE20 must match manifest. Applies
     grid/title rules, inserts relay/NO contact/terminals/signal arrows, connects

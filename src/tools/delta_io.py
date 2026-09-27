@@ -65,4 +65,4 @@ def plan(spec):
             'port_source_pdf_page':cfg['source']['pdf_pages']['port'+str(port)],'object_source_pdf_page':113})
     return {'success':True,'status':'documented_hardware_draft','cad_contacted':False,'submitted':False,
         'ready_for_drawing':False,'source':cfg['source'],'signals':signals,'modules':list(modules.values()),
-        'limitations':cfg['limitations'],'pending':['Match ordering suffix/ESI/revision to physical modules','Record actual NC50 mapping and test channel bits','Accept native Electrical PLC symbols before drawing']}
+        'limitations':cfg['limitations'],'pending':['Match ordering suffix/ESI/revision to physical modules','Record actual NC50 mapping and test channel bits','Accept native Electrical remote I/O symbol and channel wiring before drawing']}

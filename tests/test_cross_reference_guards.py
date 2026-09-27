@@ -56,3 +56,20 @@ def test_cable_parent_child_requires_matching_family_and_references():
     records[0]['attributes']['FAMILY']='CR'
     import pytest
     with pytest.raises(Exception):pairs(records,True)
+
+
+def test_busy_reference_snapshot_restarts_read_without_updating():
+    from types import SimpleNamespace
+    doc=SimpleNamespace(FullName='C:/fixture/page.dwg',Saved=True)
+    class Block:
+        ObjectName='AcDbBlockReference';HasAttributes=True;Handle='A1';Name='HCR1';reads=0
+        def GetAttributes(self):
+            self.reads+=1
+            if self.reads==1:raise RuntimeError(-2147418111,'busy')
+            return [SimpleNamespace(TagString='TAG1',TextString='-K1')]
+    block=Block();doc.ModelSpace=[block]
+    conn=MagicMock();conn.get_application.return_value.Documents=[doc]
+    with patch('src.autocad.com_runtime.time.sleep'):
+        result=x.snapshot(conn,{'drawings':[doc.FullName]},True)
+    assert result[0]['attributes']=={'TAG1':'-K1'} and block.reads==2
+    conn.send_command.assert_not_called()

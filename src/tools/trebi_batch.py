@@ -19,6 +19,9 @@ SYMBOLS = {'primary': ('HCR1', {'X4TERM01','X1TERM02'}),
            'destination': ('HA1D3', {'X1TERM01'})}
 
 def plan(spec):
+    if isinstance(spec, dict) and spec.get("schema_version") == 4:
+        from src.tools.delta_full_paths import plan as full_path_plan
+        return full_path_plan(spec)
     if isinstance(spec, dict) and spec.get("schema_version") == 3:
         from src.tools.delta_three_page import plan as three_page_plan
         return three_page_plan(spec)
@@ -158,20 +161,22 @@ def execute(project_path,spec,drawing_path):
         if project.with_suffix('.wdt').read_text(encoding='utf8')!=WDT.read_text(encoding='utf8'): raise ValueError('Unverified WDT mapping')
         lines=project.read_text(encoding='utf-8-sig').splitlines()
         if [v for v in lines if v.startswith('*[20]')]!=['*[20]'+str(recipe['pages']['effective_drawing_count'])]: raise ValueError('LINE20 differs from effective page count')
-        if any(not Path(c.get('symbol_path', LIB/(c['symbol']+'.dwg'))).is_file() for c in recipe['components']): raise ValueError('Verified IEC2 symbol library missing')
+        if any(not Path(c.get('symbol_path', LIB/(c['symbol']+'.dwg'))).is_file() for c in recipe['components'] + recipe.get('cable_markers',[]) if c['role']!='connector_half'): raise ValueError('Verified IEC2 symbol library missing')
         conn=get_connection(); app=conn.get_application(); hwnd=read_call(lambda:int(app.HWND))
         if Path(read_call(lambda:app.ActiveDocument.FullName)).resolve()!=original.resolve(): raise ValueError('Wrong active target')
         state=guard(conn,str(project))
         if [str(Path(p).resolve()).casefold() for p in state['drawings']]!=list(bound): raise ValueError('Project membership/order differs from manifest')
-        docs={str(Path(d.FullName).resolve()).casefold():d for d in app.Documents if d.FullName}
+        docs=read_call(lambda:{str(Path(d.FullName).resolve()).casefold():d for d in app.Documents if d.FullName},label='open drawing metadata snapshot')
+        blank_attributes={}
         for filename,row in bound.items():
             doc=docs.get(filename)
             if doc is None: raise ValueError('Every target page must already be open and saved')
-            objects=list(doc.ModelSpace)
-            if len(objects)!=2 or any(e.ObjectName!='AcDbBlockReference' for e in objects) or {e.Name for e in objects}!={'WD_M',profile()['block_name']}:
+            objects=read_call(lambda:list(doc.ModelSpace))
+            if read_call(lambda:len(objects)!=2 or any(e.ObjectName!='AcDbBlockReference' for e in objects) or {e.Name for e in objects}!={'WD_M',profile()['block_name']}):
                 raise ValueError('Batch requires blank WD_M + TREBI frame; never replay into populated drawings')
             if not read_call(lambda:bool(doc.Saved)): raise ValueError('Every target page must already be open and saved')
-            attrs={e.Name:get_block_attributes(e) for e in objects}
+            attrs=read_call(lambda:{e.Name:get_block_attributes(e) for e in objects})
+            blank_attributes[filename]=attrs
             if not set(settings(row['logical_page']))<=set(attrs['WD_M']) or not set(row['title_fields'])<=set(attrs[profile()['block_name']]): raise ValueError('Missing native/title attributes')
     except Exception as exc:
         return {'success':False,'status':'preflight_rejected','submitted':False,'error':str(exc)}
@@ -189,7 +194,7 @@ def execute(project_path,spec,drawing_path):
     receipt=folder/'report.json'
     report={'success':False,'status':'running','submitted':True,'project':str(project),'drawings':state['drawings'],
             'backup':saved_backup,'manifest':spec['manifest'],'component_plan':recipe['component_plan'],'steps':[],
-            'entities':{},'wires':{},'settings':{},'titles':{},'references':{},'reports':{},'receipt':str(receipt)}
+            'spec':spec,'entities':{},'wires':{},'final_wires':{},'device_inventory':{},'settings':{},'titles':{},'references':{},'reports':{},'receipt':str(receipt)}
     def persist():
         temp=receipt.with_suffix('.tmp');temp.write_text(json.dumps(report,ensure_ascii=True,indent=2),encoding='utf8');temp.replace(receipt)
     def step(name,call):
@@ -206,28 +211,38 @@ def execute(project_path,spec,drawing_path):
         item['status']='completed';persist();return value
     def activate(path):
         if read_call(lambda:int(app.HWND))!=hwnd: raise RuntimeError('AutoCAD instance changed')
-        docs[str(Path(path).resolve()).casefold()].Activate()
+        if Path(read_call(lambda:app.ActiveDocument.FullName)).resolve()!=Path(path).resolve():
+            read_call(lambda:docs[str(Path(path).resolve()).casefold()].Activate)()
         doc=wait_for_document(app,path)
         conn._bound_document=str(Path(path).resolve());conn._bound_hwnd=hwnd
-        evaluate(conn,'(progn (c:wd_makeproj_current '+literal(project.as_posix())+') T)')
         if guard(conn,str(project))!=state: raise RuntimeError('Project changed')
         return doc
     by_page={row['logical_page']:filename for filename,row in bound.items()}
     def save_active():
-        doc=conn.get_active_document(); read_call(lambda:doc.Save)()
+        doc=conn.get_active_document(); doc=wait_for_document(app,doc.FullName)
+        if not read_call(lambda:bool(doc.Saved)):read_call(lambda:doc.Save)()
         wait_for_document(app,doc.FullName)
         if not read_call(lambda:bool(doc.Saved)): raise RuntimeError('Save not confirmed')
         return {'success':True}
     try:
         for sheet,path in by_page.items():
             step('activate:'+sheet,lambda:activate(path) and None)
-            report['settings'][sheet]=step('grid:'+sheet,lambda:configure(conn,path,sheet))
-            report['titles'][sheet]=step('title:'+sheet,lambda:apply_title(conn,project,spec['manifest'],path))
+            existing=blank_attributes[path]
+            if spec.get('schema_version')==4 and all(existing['WD_M'].get(k)==v for k,v in settings(sheet).items()):
+                report['settings'][sheet]=step('grid:'+sheet,lambda:{'success':True,'status':'existing_exact_settings_verified'})
+            else:report['settings'][sheet]=step('grid:'+sheet,lambda:configure(conn,path,sheet))
+            if spec.get('schema_version')==4 and all(existing[profile()['block_name']].get(k)==v for k,v in bound[path]['title_fields'].items()):
+                report['titles'][sheet]=step('title:'+sheet,lambda:{'success':True,'status':'existing_exact_title_verified'})
+            else:report['titles'][sheet]=step('title:'+sheet,lambda:apply_title(conn,project,spec['manifest'],path))
             step('save:'+sheet,save_active)
         # Parents before children, irrespective of manifest drawing order.
-        for c in sorted(recipe['components'],key=lambda c:c['role']!='primary'):
+        for c in sorted(recipe['components'],key=lambda c:(c['role']!='primary',c['drawing_page'])):
             path=by_page[c['drawing_page']];step('activate:'+c['id'],lambda:activate(path) and None)
-            result=step('insert:'+c['id'],lambda:insert_symbol(str(c.get('symbol_path',LIB/(c['symbol']+'.dwg'))),c['x'],c['y'],attributes=c['attributes']))
+            if c['role']=='connector_half':
+                from src.tools.native_parametric import insert_connector_half
+                result=step('insert:'+c['id'],lambda:insert_connector_half(c['x'],c['y'],c['side'],c['pins'],c['attributes']))
+            else:
+                result=step('insert:'+c['id'],lambda:insert_symbol(str(c.get('symbol_path',LIB/(c['symbol']+'.dwg'))),c['x'],c['y'],attributes=c['attributes']))
             report['entities'][c['id']]={**result,'drawing':path};persist()
             if c['role']=='delta_r2_test':
                 from src.tools.delta_batch import verify_insert
@@ -238,6 +253,10 @@ def execute(project_path,spec,drawing_path):
             wire=step('wire:'+link['id'],lambda:connect_terminals(a['handle'],link['from_connection'],b['handle'],link['to_connection'],wire_layer=link.get('wire_layer','MCP_WIRE')))
             report['wires'][link['id']]=wire;persist()
             if link.get('wire_number'): step('number:'+link['id'],lambda:set_number(wire['wire_handles'][0],link['wire_number']))
+        for c in recipe.get('cable_markers',[]):
+            path=by_page[c['drawing_page']];step('activate:'+c['id'],lambda:activate(path) and None)
+            result=step('insert:'+c['id'],lambda:insert_symbol(str(LIB/(c['symbol']+'.dwg')),c['x'],c['y'],attributes=c['attributes']))
+            report['entities'][c['id']]={**result,'drawing':path};persist()
         for sheet,path in by_page.items():
             step('activate:'+sheet,lambda:activate(path) and None);step('save:'+sheet,save_active)
         if any(c['role']=='source' for c in recipe['components']):
@@ -245,14 +264,24 @@ def execute(project_path,spec,drawing_path):
                 if not any(c['drawing_page']==sheet and c['role'] in {'source','destination'} for c in recipe['components']): continue
                 step('activate:'+sheet,lambda:activate(path) and None)
                 step('signals:'+sheet,lambda:update_signals(str(project)));step('save:'+sheet,save_active)
-        if any(c['role']=='child' for c in recipe['components']): step('parent_child_references',lambda:update(str(project)))
+        if recipe.get('cable_markers') or any(c['role']=='child' for c in recipe['components']): step('parent_child_references',lambda:update(str(project)))
         for sheet,path in by_page.items():
             step('activate:'+sheet,lambda:activate(path) and None)
-            for c in recipe['components']:
+            if spec.get('schema_version')==4:
+                from src.tools.native_electrical import _points
+                inventory=[]
+                for obj in conn.get_active_document().ModelSpace:
+                    if obj.ObjectName!='AcDbBlockReference' or not obj.HasAttributes:continue
+                    a=get_block_attributes(obj)
+                    if any(a.get(k) for k in ('TAG1','TAG2','TAGSTRIP')):inventory.append({'handle':obj.Handle,'attributes':a})
+                report['device_inventory'][sheet]=inventory
+            for c in recipe['components'] + recipe.get('cable_markers',[]):
                 if c['drawing_page']!=sheet: continue
                 attrs=get_block_attributes(conn.get_active_document().HandleToObject(report['entities'][c['id']]['handle']))
                 if any(attrs.get(k)!=v for k,v in c['attributes'].items()): raise RuntimeError('Final component attribute mismatch: '+c['id'])
                 report['references'][c['id']]=attrs
+                if spec.get('schema_version')==4:
+                    report['entities'][c['id']]['connection_points']=_points(conn.get_active_document().HandleToObject(report['entities'][c['id']]['handle']))
             for ref in recipe['expected_references']:
                 if ref['id'] in report['references'] and report['references'][ref['id']].get(ref['field'])!=ref['value']: raise RuntimeError('Exact reference mismatch: '+str(ref))
             for link in recipe['connections']:
@@ -265,13 +294,26 @@ def execute(project_path,spec,drawing_path):
                     if ends:
                         partners={c['id'] for c in recipe['components'] if c.get('signal_code')==ends[0]['signal_code']}
                         number=next((w['wire_number'] for w in recipe['connections'] if w.get('wire_number') and partners.intersection({w['from_id'],w['to_id']})),None)
-                step('verify_wire:'+link['id'],lambda:verify_wire_readback(link,report['entities'],result,number))
+                # Parametric P/J endpoints can be omitted by wd_get_wire_netlst.
+                # These paths require the handle-bound native From/To check below.
+                if spec.get('schema_version')==4 and {'socket','plug'}.intersection({link['from_id'],link['to_id']}):
+                    step('defer_report_endpoint_check:'+link['id'],lambda:{'success':True,'status':'pending_native_from_to'})
+                else:
+                    step('verify_wire:'+link['id'],lambda:verify_wire_readback(link,report['entities'],result,number))
+                report['final_wires'][link['id']]=result;persist()
             step('save:'+sheet,save_active)
         for kind in ['bom','from_to','terminal_plan','terminal_numbers']:
             report['reports'][kind]=step('report:'+kind,lambda:export_report(str(project),kind,str(folder/(kind+'.csv'))))
+        if spec.get('schema_version')==4:
+            from src.tools.delta_path_acceptance import verify_native
+            report['p0_native']=step('verify_full_paths',lambda:verify_native(recipe,report))
         step('restore_original',lambda:activate(original) and None)
+        report['subjects']={str(Path(p).resolve()):digest(Path(p)) for p in [str(project),*state['drawings']]}
         report.update(success=True,status='native_readback_verified',save_reopen='pending_independent_verification')
     except Exception as exc:
         report.update(status='partial_or_unknown',error=str(exc),automatic_retry=False)
     finally: persist()
+    if report['success'] and spec.get('schema_version')==4:
+        evidence={'schema_version':1,'kind':'p0_paths','subjects':report['subjects'],'receipt_path':str(receipt),'receipt_sha256':digest(receipt)}
+        project.with_suffix('.p0.json').write_text(json.dumps(evidence,indent=2),encoding='utf8')
     return report

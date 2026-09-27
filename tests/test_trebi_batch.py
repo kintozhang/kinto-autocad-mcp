@@ -46,7 +46,8 @@ def test_only_proven_batch_preflight_releases_gate(tmp_path,submitted):
         assert result['status']==('outcome_unknown' if submitted else 'preflight_rejected')
 
 @pytest.mark.parametrize('populated',[True,False])
-def test_all_pages_preflight_before_write_and_stop_on_first_failure(spec,tmp_path,populated):
+@pytest.mark.parametrize('busy_documents',[True,False])
+def test_all_pages_preflight_before_write_and_stop_on_first_failure(spec,tmp_path,populated,busy_documents):
     from contextlib import ExitStack
     from unittest.mock import MagicMock
     from src.tools import trebi_batch as batch
@@ -64,7 +65,14 @@ def test_all_pages_preflight_before_write_and_stop_on_first_failure(spec,tmp_pat
     if populated:
         docs[-1].ModelSpace.append(MagicMock(ObjectName='AcDbLine'))
         docs[-1].Saved=False  # Populated-drawing rejection must precede unsaved-state rejection.
-    conn=MagicMock();app=conn.get_application.return_value;app.HWND=7;app.Documents=docs;app.ActiveDocument=docs[-1]
+    class App:
+        HWND=7;reads=0;ActiveDocument=docs[-1]
+        @property
+        def Documents(self):
+            self.reads+=1
+            if busy_documents and self.reads==1:raise RuntimeError(-2147418111,'busy')
+            return docs
+    conn=MagicMock();app=App();conn.get_application.return_value=app
     conn.get_active_document.side_effect=lambda:app.ActiveDocument
     for doc in docs:doc.Activate.side_effect=lambda d=doc:setattr(app,'ActiveDocument',d)
     state={'project':str(project),'drawings':[d.FullName for d in docs]}

@@ -81,7 +81,12 @@ def execute(spec):
                 read_call(lambda:doc.Activate)();wait_for_document(app,target)
                 step('grid:'+page,lambda:configure(conn,target,page))
                 step('title:'+page,lambda:apply_title(conn,str(wdp),planned['manifest'],target))
-                step('save:'+page,lambda:read_call(lambda:doc.Save)())
+                def save_ready():
+                    ready=wait_for_document(app,target)
+                    if not read_call(lambda:bool(ready.Saved)):read_call(lambda:ready.Save)()
+                    wait_for_document(app,target)
+                    if not read_call(lambda:bool(ready.Saved)):raise RuntimeError('Save not confirmed')
+                step('save:'+page,save_ready)
         for target in planned['drawings']:
             doc=next(d for d in app.Documents if Path(d.FullName).resolve()==Path(target).resolve())
             if not read_call(lambda:bool(doc.Saved)):raise RuntimeError('Created drawing not saved')

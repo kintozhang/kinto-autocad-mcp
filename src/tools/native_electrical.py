@@ -50,8 +50,10 @@ def insert_symbol(symbol_name, x, y, rotation=0, attributes=None):
         if not isinstance(handle,str) or handle in before:
             raise BridgeError("Native insertion did not return a new entity handle")
         created = handle
-        obj = doc.HandleToObject(handle)
-        if obj.ObjectName != "AcDbBlockReference":
+        from src.autocad.com_runtime import read_call,wait_for_document
+        wait_for_document(conn.get_application(),doc.FullName)
+        obj = read_call(lambda:doc.HandleToObject(handle))
+        if read_call(lambda:obj.ObjectName) != "AcDbBlockReference":
             raise BridgeError("Native insertion returned a non-block")
         for key,value in requested.items():
             updated = evaluate(conn, "(c:wd_modattrval " + entity(handle) + " " +
@@ -62,21 +64,28 @@ def insert_symbol(symbol_name, x, y, rotation=0, attributes=None):
         if any(actual.get(k.upper()) != v for k,v in requested.items()):
             raise BridgeError("Attribute readback mismatch")
         return {"success": True, "status":"native_insert_verified", "handle":handle,
-                "block":obj.Name, "position":list(obj.InsertionPoint), "attributes":actual,
+                "block":read_call(lambda:obj.Name), "position":read_call(lambda:list(obj.InsertionPoint)), "attributes":actual,
                 "connection_points":_points(obj), "api":"c:wd_insym2"}
     except Exception as exc:
         return failure(exc, created_handle=created)
 
 
 def _points(obj):
-    attrs = get_block_attributes(obj)
-    points = []
+    from src.autocad.com_runtime import read_call
+    return read_call(lambda:_points_once(obj),label="complete Electrical connection-point snapshot")
+
+
+def _points_once(obj):
+    # One attribute enumeration per attempt; never return a partial point list.
+    terminals={};points=[]
     for attr in obj.GetAttributes():
-        tag = attr.TagString.upper()
-        match = CONNECTION.fullmatch(tag)
+        tag=attr.TagString.upper()
+        match=CONNECTION.fullmatch(tag)
         if match:
-            points.append({"connection":tag, "position":list(attr.InsertionPoint),
-                           "terminal":attrs.get("TERM"+match.group(1), "")})
+            points.append({'connection':tag,'position':list(attr.InsertionPoint),'terminal_key':'TERM'+match.group(1)})
+        elif re.fullmatch(r'TERM[0-9]{2}[PJ]?',tag):
+            terminals[tag]=attr.TextString
+    for point in points:point['terminal']=terminals.get(point.pop('terminal_key'),'')
     return points
 
 
@@ -198,20 +207,25 @@ def set_number(wire_handle, number):
         return failure(exc)
 
 def inspect_wire(wire_handle):
-    """Read native network and number without changing either."""
-    try:
-        wire = entity(wire_handle)
-        conn, doc = connection()
-        obj = doc.HandleToObject(wire_handle)
-        layers = evaluate(conn, "(c:ace_get_wiretype_list nil)") or []
-        if obj.ObjectName != "AcDbLine" or obj.Layer not in layers:
-            raise ValueError("Expected a LINE on a registered Electrical wire layer")
-        result = evaluate(conn, "((lambda (/ r) (setq r (c:ace_get_wnum " + wire +
-                          ')) (if r (list (car r) (cdr (assoc 5 (entget (cadr r))))) )))')
-        return {"success": True, "wire_handle": wire_handle,
-                "wire_number": result[0] if result else None,
-                "number_block_handle": result[1] if result else None,
-                "connections": network(conn, wire_handle), "wire_layer": obj.Layer,
-                "start": list(obj.StartPoint), "end": list(obj.EndPoint)}
-    except Exception as exc:
-        return failure(exc)
+    """Read-only network snapshot; an interrupted read never repeats a wire write."""
+    from src.autocad.com_runtime import read_call
+    try:return read_call(lambda:_inspect_wire_once(wire_handle),label="complete wire snapshot")
+    except Exception as exc:return failure(exc)
+
+
+def _inspect_wire_once(wire_handle):
+    wire = entity(wire_handle)
+    conn, doc = connection()
+    obj = doc.HandleToObject(wire_handle)
+    layers = evaluate(conn, "(c:ace_get_wiretype_list nil)") or []
+    if obj.ObjectName != "AcDbLine" or obj.Layer not in layers:
+        raise ValueError("Expected a LINE on a registered Electrical wire layer")
+    result = evaluate(conn, "((lambda (/ r) (setq r (c:ace_get_wnum " + wire +
+                      ')) (if r (list (car r) (cdr (assoc 5 (entget (cadr r))))) )))')
+    return {"success": True, "wire_handle": wire_handle,
+            "wire_number": result[0] if result else None,
+            "number_block_handle": result[1] if result else None,
+            "connections": network(conn, wire_handle),
+            "network_wire_handles": evaluate(conn, "(mapcar '(lambda (e) (cdr (assoc 5 (entget e)))) (car (c:wd_get_wire_netlst " + wire + " 1)))") or [],
+            "wire_layer": obj.Layer,
+            "start": list(obj.StartPoint), "end": list(obj.EndPoint)}

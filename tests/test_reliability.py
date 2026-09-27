@@ -46,6 +46,8 @@ def test_long_expression_uses_short_single_submission(tmp_path, monkeypatch):
         commands=[]
         def get_active_document(self):
             return SimpleNamespace(FullName='C:/test.dwg',GetVariable=lambda _:0)
+        def get_application(self):
+            return SimpleNamespace(ActiveDocument=self.get_active_document(),GetAcadState=lambda:SimpleNamespace(IsQuiescent=True))
         def send_command(self, command):
             self.commands.append(command)
             source=next((tmp_path/'work/bridge').glob('*.expression'))
@@ -67,6 +69,8 @@ def test_receipt_metadata_transient_does_not_resubmit_command(tmp_path, monkeypa
             self.reads+=1
             if self.sent and self.reads<4:raise AttributeError('<unknown>.FullName')
             return SimpleNamespace(FullName='C:/test.dwg',GetVariable=lambda _:0)
+        def get_application(self):
+            return SimpleNamespace(ActiveDocument=SimpleNamespace(FullName="C:/test.dwg",GetVariable=lambda _:0),GetAcadState=lambda:SimpleNamespace(IsQuiescent=True))
         def send_command(self,command):
             self.sent+=1
             import re
@@ -74,4 +78,21 @@ def test_receipt_metadata_transient_does_not_resubmit_command(tmp_path, monkeypa
             (tmp_path/'work/bridge'/(name+'.lisp')).write_text('("ok" 1)')
     conn=Conn()
     assert lisp_bridge.evaluate(conn,'1')==1
+    assert conn.sent==1
+
+
+def test_bridge_post_receipt_readiness_failure_never_resubmits(tmp_path,monkeypatch):
+    monkeypatch.setattr(lisp_bridge,'ROOT',tmp_path)
+    class Conn:
+        sent=0
+        def get_active_document(self):return SimpleNamespace(FullName='C:/test.dwg',GetVariable=lambda _:0)
+        def get_application(self):return object()
+        def send_command(self,command):
+            import re
+            self.sent+=1
+            name=re.search(r'/([a-f0-9]{32})[.]lisp',command).group(1)
+            (tmp_path/'work/bridge'/(name+'.lisp')).write_text('("ok" 1)')
+    conn=Conn()
+    with patch.object(lisp_bridge,'wait_for_document',side_effect=[None,com_runtime.ComBusyError('post-read busy')]):
+        with pytest.raises(com_runtime.ComBusyError):lisp_bridge.evaluate(conn,'1')
     assert conn.sent==1

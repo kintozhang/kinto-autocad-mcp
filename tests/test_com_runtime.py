@@ -94,3 +94,18 @@ def test_document_name_exhaustion_reports_actionable_read_only_diagnostic():
         document_full_name(app,attempts=3,interval=0)
     assert app.calls==3
     assert isinstance(error.value.__cause__,AttributeError)
+
+
+def test_busy_send_method_lookup_recovers_without_replaying_write():
+    class Document:
+        reads=0
+        writes=[]
+        @property
+        def SendCommand(self):
+            self.reads+=1
+            if self.reads==1:raise RpcError(-2147418111)
+            return self.writes.append
+    conn=AutoCADConnection();doc=Document()
+    with patch.object(conn,'ensure_connected'),patch.object(conn,'get_active_document',return_value=doc),patch('src.autocad.com_runtime.time.sleep'):
+        conn.send_command('TEST')
+    assert doc.reads==2 and doc.writes==['TEST ']

@@ -10,7 +10,7 @@ from src.autocad.client_gate import exclusive, GateRejected, gate_path
 
 ROOT = Path(__file__).resolve().parents[2]
 DEADLINE = 45
-TOOL_DEADLINES = {"update_electrical_cross_references": 120, "insert_test_parametric_connector": 100, "insert_test_plc_module": 100, "create_cad_project": 600, "execute_trebi_test_change": 180, "execute_trebi_batch": 600, "export_electrical_project_report": 90, "export_electrical_project_pdf": 180}
+TOOL_DEADLINES = {"update_electrical_cross_references": 120, "insert_test_parametric_connector": 100, "insert_test_plc_module": 100, "create_cad_project": 600, "execute_trebi_test_change": 180, "execute_trebi_batch": 1800, "export_electrical_project_report": 90, "export_electrical_project_pdf": 180}
 
 METADATA = {"get_tool_capabilities", "get_symbol_list", "get_autocad_info"}
 

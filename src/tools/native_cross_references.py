@@ -9,6 +9,11 @@ from src.tools.native_electrical import failure
 
 
 def snapshot(conn, project, require_saved):
+    from src.autocad.com_runtime import read_call
+    return read_call(lambda:_snapshot_once(conn,project,require_saved),label="complete cross-reference snapshot")
+
+
+def _snapshot_once(conn, project, require_saved):
     docs = {str(Path(d.FullName).resolve()).casefold(): d for d in conn.get_application().Documents if d.FullName}
     records = []
     for filename in project["drawings"]:

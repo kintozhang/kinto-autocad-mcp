@@ -453,17 +453,17 @@
     "plan_trebi_batch": {
       "status": "offline_and_stdio_verified",
       "default_enabled": true,
-      "scope": "Pure TREBI batch preflight: pages/tags/reference expectations; no CAD scan",
+      "scope": "TREBI v1-v4 preflight; v4 test-only R2 PNP DI/DO four-route connector/cable/common/PDO contract",
       "replacement": null,
-      "issue": "Prepared blank-page recipe only; no catalog selection",
-      "evidence": "docs/trebi-batch-validation.md"
+      "issue": "Bounded recipes; no automatic catalog selection or hardware discovery",
+      "evidence": "docs/p0-full-paths.md"
     },
     "execute_trebi_batch": {
       "status": "live_sample_verified",
       "default_enabled": true,
       "scope": "Two-page IEC2 relay/contact/terminals/signals; native title/grid, wires, references, reports and independent reopen accepted",
       "replacement": null,
-      "issue": "Requires prepared blank pages; only verified IEC2 subset; general 8-page limit not full-range acceptance",
+      "issue": "Prepared blank pages and bounded test recipes only; v4 full native batch/reopen/PDF acceptance tracked in p0-full-paths.md; no production release",
       "evidence": "docs/trebi-batch-validation.md"
     },
     "plan_delta_r2_io": {
@@ -471,7 +471,7 @@
       "default_enabled": true,
       "scope": "Read-only R2-EC0902 family channel/common/PDO-group draft; no CAD contact; v3 complete 76-terminal unbound inventory (read-only)",
       "replacement": null,
-      "issue": "D0 suffix, exact ESI, NC50 addresses and native PLC symbols pending",
+      "issue": "Physical Revision/station and NC50 addresses/PDO observations pending; R2 is remote I/O, NC50 owns PLC logic",
       "evidence": "docs/delta-io-planning.md"
     },
     "execute_trebi_test_change": {
@@ -496,8 +496,8 @@
     "audit_cad_project": {
       "default_enabled": true,
       "status": "restricted_workflow_verified",
-      "scope": "Offline version-bound evidence / restore to new directory only",
-      "evidence": "docs/engineering-project-workflow.md"
+      "scope": "Version-bound evidence plus automatic P0 sidecar revalidation; unknown hardware/address blocks release",
+      "evidence": "docs/p0-full-paths.md"
     },
     "restore_cad_project": {
       "default_enabled": true,
