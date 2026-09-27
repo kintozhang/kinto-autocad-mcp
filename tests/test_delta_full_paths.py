@@ -180,7 +180,7 @@ def test_nc50_bad_range_rejects_batch_before_cad(spec):
     conn.assert_not_called()
 
 
-@pytest.mark.parametrize('fault',[None,'missing_row','wrong_description','wrong_handle'])
+@pytest.mark.parametrize('fault',[None,'missing_row','wrong_description','wrong_handle','symbol_default'])
 def test_candidate_bom_is_native_and_exact(spec,fault):
     from src.tools.delta_path_acceptance import verify_native
     spec['eio_assumptions']=[{'module_id':spec['mapping']['modules'][0]['id'],'eio_sequence':1,'eio_port':501,'start_address':256,'source':'test'}]
@@ -191,9 +191,12 @@ def test_candidate_bom_is_native_and_exact(spec,fault):
         row[16:19]=[c['attributes'].get(k,'') for k in ('DESC1','DESC2','DESC3')]
         row[22]='h='+r['entities'][c['id']]['handle']
     row=next(row for row in r['reports']['bom']['rows'] if row[3]=='LAMP_24V_TEST')
+    if fault=='symbol_default':
+        r['references']['r2']['DESC1']='R2-EC0902D0'
+        next(x for x in r['reports']['bom']['rows'] if x[3]=='R2-EC0902D0')[16]='R2-EC0902D0'
     if fault=='missing_row':r['reports']['bom']['rows'].remove(row)
     if fault=='wrong_description':row[17]='TEST NC50 Y288'
     if fault=='wrong_handle':row[22]='h=FFFF'
-    if fault:
+    if fault and fault!='symbol_default':
         with pytest.raises(ValueError):verify_native(p,r)
     else:assert verify_native(p,r)['routes']==4

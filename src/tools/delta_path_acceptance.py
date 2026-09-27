@@ -47,7 +47,7 @@ def verify_native(recipe,report):
             rows=[row for row in report['reports']['bom']['rows'] if len(row)>22 and row[22].upper()=='H='+entities[id]['handle'].upper()]
             if len(rows)!=1 or rows[0][15]!=expected['TAG1'] or rows[0][3]!=expected['CAT']:
                 raise ValueError('Missing/ambiguous native candidate BOM component: '+id)
-            if rows[0][16:19]!=[expected.get(k,'') for k in ('DESC1','DESC2','DESC3')]:
+            if rows[0][16:19]!=[attrs[id].get(k,'') for k in ('DESC1','DESC2','DESC3')]:
                 raise ValueError('Native candidate BOM descriptions mismatch: '+id)
     parents=defaultdict(list)
     for c in recipe['components']:
