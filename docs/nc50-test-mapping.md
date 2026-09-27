@@ -61,3 +61,33 @@ EIO序号按可识别远程模块顺序，伺服驱动器不计入此排列；�
 PDF首次预检因COM忙碌在写入前拒绝；第二次默认MCP导出成功。
 
 绘图版本73b3743，校验修复版本49ddbc9。证据见evidence/failed-batch-validator.json、independent-reopen.json、native-verified-receipt.json、pdf-mcp2.json、pdf-visual-review.json、audit-mcp.json。测试产物与失败现场均在CAD_Projects，原R7工程保留。
+
+
+## 256到288的独立重建验收
+
+2026-09-27，使用现有代码a6db8f5及默认MCP入口完成。本轮未修改程序，沿用571项回归基线，不重复宣称本轮运行全部单元测试。
+
+起始地址改为288后，在新的空白TREBI两页工程中重建；不是就地修改原256工程。默认批量完整一次通过，独立保存关闭重开、四类报表及PDF导出也一次成功。
+
+### 变更与保持项
+
+| 元件/属性 | 256基准 | 288样板 |
+| --- | --- | --- |
+| 按钮DESC2 | TEST NC50 X256 | TEST NC50 X288 |
+| 灯DESC2 | TEST NC50 Y256 | TEST NC50 Y288 |
+| R2 DESC3 | NC50 X256 / Y256 | NC50 X288 / Y288 |
+
+原信号I545/O529、物理端子、线号、电位、四芯、插头插座配对与跨页引用保持一致。新工程的九个LINKTERM UUID重新生成，已检查UUID合法、端子分组关系一一对应。对象句柄和工程文件名是局部标识；报表比较仅规范化这些标识及已核对的端子UUID，未忽略业务字段。
+
+### 验收结果
+
+- 76个R2接点、17组线网和4条原生路径均通过。
+- BOM6行，只出现上述三处预期描述变更；From/To15行、端子计划9行、端子线号9行与基准一致。
+- 重开后四类报表逐行一致；原256项目文件哈希不变，新图源哈希在PDF导出后不变。
+- PDF两页视觉通过；X288/Y288可读、无重叠裁切；6个内部链接、2个逻辑页书签、0个SHX文字批注。
+- audit_cad_project的P0路径检查通过；实物、实际NC50地址/PDO与工程审核仍未知，所以正式出图保持阻断。候选测试通过不依赖实物已到位。
+
+证据位于evidence/batch-receipt.json、independent-reopen.json、change-comparison.json、pdf-mcp.json、pdf-visual-review.json和audit-mcp.json。图纸在drawings/，四类报表在reports/，样图在exports/NC50-X288-Y288.pdf。
+
+
+验收目录：`C:/kinto/CAD_Projects/TREBI_Localization/electrical/poc/P0-PATHS-NC50-288-20260927`。
