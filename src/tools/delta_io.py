@@ -6,6 +6,9 @@ PROFILE=Path(__file__).resolve().parents[2]/'profiles/delta-r2-ec0902.json'
 
 
 def plan(spec):
+    if isinstance(spec, dict) and type(spec.get("schema_version")) is int and spec["schema_version"] == 3:
+        from src.tools.delta_module_inventory import plan as inventory_plan
+        return inventory_plan(spec)
     if isinstance(spec, dict) and type(spec.get("schema_version")) is int and spec["schema_version"] == 2:
         from src.tools.delta_mapping import plan_v2
         return plan_v2(spec)
